@@ -91,11 +91,59 @@
 </aside>
 
 <main class="content">
+  {% if update %}
+  <div class="update-banner" id="update-banner">
+    <i class="bi bi-arrow-up-circle"></i>
+    <div class="min-w-0">
+      <strong>Nova versão {{ update.version }} disponível</strong>
+      <span class="update-status" id="update-status">Você está na versão {{ app_version }}.</span>
+    </div>
+    <div class="update-actions">
+      {% if can_self_update %}
+      <button type="button" class="btn-accent" id="update-button"><i class="bi bi-download"></i><span>Atualizar agora</span></button>
+      {% else %}
+      <a class="btn-accent" href="{{ download_page }}"><i class="bi bi-download"></i>Baixar</a>
+      {% endif %}
+      <a class="btn-ghost" href="{{ update.url }}" target="_blank" rel="noopener">O que mudou</a>
+    </div>
+  </div>
+  {% endif %}
   {% block content %}{% endblock %}
 </main>
 
 <script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% if update and can_self_update %}
+<script>
+document.getElementById('update-button').addEventListener('click', async event => {
+  const button = event.currentTarget;
+  const status = document.getElementById('update-status');
+  const current = {{ app_version | tojson }};
+  button.disabled = true;
+  button.querySelector('span').textContent = 'Atualizando…';
+  status.textContent = 'Baixando e conferindo a versão nova. Não feche esta janela.';
+  try {
+    const response = await fetch({{ url_for('pages.update_app') | tojson }}, { method: 'POST' });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Falha na atualização.');
+    status.textContent = `Instalando a versão ${result.version}. O FleetDesk vai reabrir sozinho.`;
+    // Poll until the restarted app answers with the new version, then reload.
+    for (let i = 0; i < 90; i++) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        const r = await fetch({{ url_for('pages.version') | tojson }}, { cache: 'no-store' });
+        if (r.ok && (await r.json()).version !== current) { location.reload(); return; }
+      } catch (_) { /* restarting */ }
+    }
+    status.textContent = 'A atualização está demorando. Abra o FleetDesk de novo pelo ícone.';
+  } catch (error) {
+    status.textContent = error.message;
+    button.disabled = false;
+    button.querySelector('span').textContent = 'Tentar de novo';
+  }
+});
+</script>
+{% endif %}
 {% block scripts %}{% endblock %}
 </body>
 </html>

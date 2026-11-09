@@ -15,7 +15,7 @@ como sempre, e o FleetDesk só lê.
 |---|---|
 | Computador | Windows 10 ou 11, 64 bits |
 | Espaço em disco | Cerca de 60 MB |
-| Internet | Só para baixar. O FleetDesk funciona sem internet |
+| Internet | Só para baixar e para atualizar. O FleetDesk funciona sem internet |
 | Planilhas | No modelo **FRETES (V2)**, com a aba `LANÇAMENTOS`. Uma planilha por mês funciona normalmente |
 | Google Drive (opcional) | Se as planilhas ficam no Drive, instale o **Google Drive para computador** para que a pasta apareça no Windows |
 
@@ -23,17 +23,29 @@ Não é preciso instalar Python, nem ser administrador do computador.
 
 ## 2. Instalar (uma vez só)
 
-1. Na página de download, clique em **Baixar para Windows**.
-2. Abra a pasta **Downloads**, clique com o botão direito no arquivo `FleetDesk-windows.zip`
-   e escolha **Propriedades**. Embaixo, marque **Desbloquear** e clique em **OK**.
-   *Isso evita um aviso de segurança do Windows na primeira vez. O FleetDesk é seguro: todo
-   programa nele é assinado digitalmente pela Python Software Foundation.*
-3. Clique de novo com o botão direito no `.zip` e escolha **Extrair tudo...**. Escolha uma
-   pasta fixa, por exemplo **Documentos**. Não abra o FleetDesk de dentro do `.zip`.
-4. Na pasta extraída, dê dois cliques em **Iniciar FleetDesk**.
+1. Na página de download, clique em **Baixar instalador para Windows**.
+2. Na pasta **Downloads**, dê dois cliques em `FleetDesk-Setup.exe`.
+3. Se aparecer **"O Windows protegeu o computador"**, clique em **Mais informações** e depois em
+   **Executar assim mesmo**. *O aviso aparece porque o instalador ainda não tem assinatura
+   digital (está em andamento).*
+4. Clique em **Avançar** e **Instalar**.
 
-O FleetDesk abre no navegador e cria o ícone **FleetDesk** na Área de Trabalho. A partir daí,
-use sempre esse ícone.
+O FleetDesk abre sozinho no navegador e ganha um ícone na **Área de Trabalho** e no **menu
+Iniciar**. A partir daí, use sempre esse ícone.
+
+### Se o Windows bloquear o instalador sem a opção "Executar assim mesmo"
+
+Isso acontece em computadores com o **Controle Inteligente de Aplicativos** ligado. Use a
+**versão portátil**, que funciona nesses computadores porque todo programa dentro dela é
+assinado digitalmente pela Python Software Foundation:
+
+1. Na página de download, clique em **versão portátil (.zip)**.
+2. Clique com o botão direito em `FleetDesk-windows.zip` > **Propriedades**, marque
+   **Desbloquear** e clique em **OK**.
+3. Clique de novo com o botão direito > **Extrair tudo...** e escolha uma pasta fixa, por
+   exemplo **Documentos**. Não abra o FleetDesk de dentro do `.zip`.
+4. Na pasta extraída, dê dois cliques em **Iniciar FleetDesk**. Ele cria o ícone na Área de
+   Trabalho.
 
 ## 3. Primeiro uso
 
@@ -96,12 +108,19 @@ Auditoria funciona do mesmo jeito, só sem o resumo.
 
 ## 6. Atualizar para uma versão nova
 
-1. **Configurações > Encerrar FleetDesk.**
-2. Baixe a versão nova na página de download.
-3. Apague a pasta antiga do FleetDesk e extraia a nova no mesmo lugar.
-4. Dê dois cliques em **Iniciar FleetDesk**.
+Ao abrir, o FleetDesk confere se existe uma versão nova. Se existir, aparece no topo da tela o
+aviso **"Nova versão disponível"**:
 
-Suas configurações (pasta das planilhas, nome da empresa, tema) são mantidas.
+1. Clique em **Atualizar agora**.
+2. Espere alguns segundos: o FleetDesk baixa a versão nova, confere se o arquivo veio inteiro,
+   fecha e abre de novo sozinho.
+
+Suas configurações (pasta das planilhas, nome da empresa, tema) são mantidas. Para conferir na
+hora, use **Configurações > Atualizações > Verificar agora**.
+
+Raramente, uma versão troca o Python interno do FleetDesk e não pode ser aplicada assim: o aviso
+pede para baixar de novo na página de download. Nesse caso, instale por cima (o instalador
+substitui a versão antiga) ou, na versão portátil, apague a pasta antiga e extraia a nova.
 
 ## 7. O que o FleetDesk ainda não faz
 
@@ -114,19 +133,26 @@ Para usar com segurança, saiba destes limites da versão atual:
 - **Planilhas no modelo antigo** (uma aba por motorista) aparecem como *Ignoradas*.
 - **As abas FECHAMENTO e RESULTADO POR PLACA não têm coluna de competência:** o FleetDesk usa a
   competência da maioria dos fretes da mesma planilha.
-- **Atualizações são manuais:** baixe e substitua a pasta, como no item 6.
+- **O instalador ainda não tem assinatura digital:** o Windows avisa antes de instalar, e em
+  computadores com o Controle Inteligente de Aplicativos é preciso usar a versão portátil.
 
 ## 8. Privacidade
 
-O FleetDesk roda só neste computador e não envia dados para a internet. As planilhas são
-lidas no lugar onde estão, e as configurações ficam em `%APPDATA%\FleetDesk`.
+O FleetDesk roda só neste computador e **os dados das planilhas nunca saem dele**. As planilhas
+são lidas no lugar onde estão, e as configurações ficam em `%APPDATA%\FleetDesk`.
+
+A única conexão com a internet é a verificação de versões novas, que consulta a página de
+versões do projeto no GitHub e não envia nenhum dado seu. Ela pode ser desligada em
+**Configurações > Atualizações**.
 
 ## 9. Problemas comuns
 
 | Problema | O que fazer |
 |---|---|
-| Aviso "O Windows protegeu o computador" ao abrir | Clique em **Mais informações > Executar assim mesmo**, ou faça o passo 2 da instalação (Desbloquear) antes de extrair |
-| Aparece "Extraia o arquivo .zip..." | Você abriu de dentro do `.zip`. Faça o passo 3 da instalação |
+| Aviso "O Windows protegeu o computador" ao instalar | Clique em **Mais informações > Executar assim mesmo** |
+| O Windows bloqueia o instalador sem opção de executar | Use a versão portátil (item 2, *Se o Windows bloquear o instalador*) |
+| Aparece "Extraia o arquivo .zip..." | Você abriu a versão portátil de dentro do `.zip`. Extraia antes |
+| "Atualizar agora" mostra um erro | Confira a internet e tente de novo. Se continuar, baixe a versão nova na página de download |
 | Uma planilha aparece como *Ignorada* | Ela não está no modelo FRETES (V2). Confira se tem a aba `LANÇAMENTOS` |
 | Aparece *Erro ao ler* | A planilha pode estar sendo salva ou sincronizada. Espere um pouco e clique em **Recarregar** |
 | Aviso de "fretes repetidos" | Há duas planilhas iguais na pasta (por exemplo, "Cópia de..."). Remova a cópia |
@@ -136,5 +162,9 @@ lidas no lugar onde estão, e as configurações ficam em `%APPDATA%\FleetDesk`.
 
 ## 10. Desinstalar
 
-Apague a pasta do FleetDesk e o ícone da Área de Trabalho. Para apagar também as
-configurações, apague a pasta `%APPDATA%\FleetDesk`.
+- **Instalado pelo instalador:** abra **Configurações do Windows > Aplicativos**, procure
+  **FleetDesk** e clique em **Desinstalar**.
+- **Versão portátil:** apague a pasta do FleetDesk e o ícone da Área de Trabalho.
+
+As configurações ficam guardadas para uma eventual reinstalação. Para apagá-las também, apague a
+pasta `%APPDATA%\FleetDesk`.

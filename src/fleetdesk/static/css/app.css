@@ -270,6 +270,17 @@ a { color: inherit; }
 .alert-error { background: var(--negative-bg); color: var(--negative); }
 .alert-success { background: var(--positive-bg); color: var(--positive); }
 
+/* ── Update banner ───────────────────────────────────────────────────────── */
+.update-banner {
+  display: flex; align-items: center; gap: .9rem; flex-wrap: wrap;
+  padding: .75rem 1rem; margin-bottom: 1.25rem; border-radius: 12px;
+  background: var(--accent-bg); border: 1px solid var(--accent);
+}
+.update-banner > i { font-size: 1.4rem; color: var(--accent); }
+.update-banner > div:first-of-type { flex: 1 1 260px; }
+.update-status { display: block; font-size: .8rem; color: var(--text-2); }
+.update-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
 /* ── Audit ───────────────────────────────────────────────────────────────── */
 .finding-why { font-size: .84rem; color: var(--text-2); margin: 0 0 .6rem; max-width: 80ch; }
 .ai-output {

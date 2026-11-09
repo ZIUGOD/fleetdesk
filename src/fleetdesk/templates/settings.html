@@ -173,8 +173,34 @@
         <dt>Lida pelo sistema</dt><dd>{{ dataset.loaded_at.strftime('%d/%m/%Y às %H:%M:%S') }}</dd>
         {% endif %}
         <dt>Privacidade</dt>
-        <dd>Roda apenas neste computador, sem acesso à internet. Os dados nunca saem da máquina.</dd>
+        <dd>Roda apenas neste computador e os dados das planilhas nunca saem da máquina. A única
+          conexão com a internet é a verificação de novas versões, que pode ser desligada abaixo.</dd>
       </dl>
+    </div>
+
+    <div class="panel panel-body mt-3" id="updates">
+      <h2 class="panel-title"><i class="bi bi-arrow-up-circle me-1"></i>Atualizações</h2>
+      <div class="panel-subtitle mb-3">
+        Ao abrir, o FleetDesk confere se existe uma versão nova e avisa no topo da tela. A atualização
+        só acontece quando você clicar em <strong>Atualizar agora</strong>.
+      </div>
+      {% if saved == 'update-check' %}
+        {% if checked_update %}
+        <div class="alert-success"><i class="bi bi-arrow-up-circle"></i><span>Versão {{ checked_update.version }} disponível. Use o aviso no topo da tela para atualizar.</span></div>
+        {% else %}
+        <div class="alert-success"><i class="bi bi-check-circle"></i><span>Você já está na versão mais recente ({{ app_version }}).</span></div>
+        {% endif %}
+      {% endif %}
+      <form method="post" class="mb-3">
+        <input type="hidden" name="check_updates" value="{{ '0' if check_updates else '1' }}">
+        <label class="d-flex align-items-center gap-2" style="cursor:pointer">
+          <input type="checkbox" class="form-check-input m-0" {{ 'checked' if check_updates }} onchange="this.form.submit()">
+          <span>Verificar atualizações automaticamente</span>
+        </label>
+      </form>
+      <form method="post" action="{{ url_for('pages.check_for_update') }}">
+        <button type="submit" class="btn-ghost"><i class="bi bi-arrow-clockwise"></i> Verificar agora</button>
+      </form>
     </div>
 
     <div class="panel panel-body mt-3">

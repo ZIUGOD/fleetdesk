@@ -20,6 +20,15 @@ class Settings:
     company_name: str = ""
     #: Local Ollama model for the audit summary; empty picks one automatically.
     ai_model: str = ""
+    #: Look for new versions on GitHub at start-up (the app's only internet access).
+    check_updates: bool = True
+
+
+def _coerce(value: Any, annotation: Any) -> str | bool:
+    # Annotations are strings here (postponed evaluation); hand-edited files may hold "false".
+    if annotation in ("bool", bool):
+        return value if isinstance(value, bool) else str(value).strip().lower() in ("1", "true")
+    return str(value)
 
 
 def default_settings_path() -> Path:
@@ -43,11 +52,12 @@ class SettingsStore:
             return Settings()
         if not isinstance(raw, dict):
             return Settings()
-        known = {f.name for f in fields(Settings)}
-        settings = Settings(**{k: str(v) for k, v in raw.items() if k in known})
+        types = {f.name: f.type for f in fields(Settings)}
+        values: dict[str, Any] = {k: _coerce(v, types[k]) for k, v in raw.items() if k in types}
+        settings = Settings(**values)
         return settings if settings.theme in THEMES else replace(settings, theme="dark")
 
-    def update(self, **changes: str) -> Settings:
+    def update(self, **changes: Any) -> Settings:
         with self._lock:
             settings = replace(self.load(), **changes)
             self.path.parent.mkdir(parents=True, exist_ok=True)

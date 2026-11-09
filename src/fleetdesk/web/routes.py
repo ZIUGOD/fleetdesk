@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 from dataclasses import asdict, dataclass
 
 from flask import (
@@ -19,6 +20,7 @@ from flask import (
 )
 from werkzeug.wrappers import Response
 
+from fleetdesk import __version__
 from fleetdesk.assistant import AssistantError
 from fleetdesk.data import analytics
 from fleetdesk.data.audit import AuditReport, run_audit
@@ -26,6 +28,7 @@ from fleetdesk.data.models import Dataset, Freight
 from fleetdesk.data.repository import WORKBOOK_EXTENSIONS, list_workbooks
 from fleetdesk.dialogs import DialogBusyError, PickKind
 from fleetdesk.settings import THEMES
+from fleetdesk.updates import DOWNLOAD_PAGE, UpdateError
 from fleetdesk.web.services import services
 
 log = logging.getLogger(__name__)
@@ -271,6 +274,9 @@ def settings() -> str | Response:
         if "company_name" in form:
             store.update(company_name=form["company_name"].strip()[:60])
             return redirect(url_for("pages.settings", saved="company"))
+        if "check_updates" in form:
+            store.update(check_updates=form["check_updates"] == "1")
+            return redirect(url_for("pages.settings") + "#updates")
         if "ai_model" in form:
             store.update(ai_model=form["ai_model"].strip()[:80])
             return redirect(url_for("pages.settings", saved="ai") + "#ai")
@@ -289,6 +295,8 @@ def settings() -> str | Response:
         error=error,
         ai_model=store.load().ai_model,
         assistant=services().assistant.status(store.load().ai_model),
+        check_updates=store.load().check_updates,
+        checked_update=services().updates.cached(),
     )
 
 
@@ -356,6 +364,37 @@ def audit_summary() -> Response | tuple[Response, int]:
         log.warning("AI summary failed: %s", exc)
         return jsonify(error=str(exc)), 502
     return jsonify(text=summary.text, model=summary.model, seconds=round(summary.seconds, 1))
+
+
+@bp.get("/version")
+def version() -> Response:
+    return jsonify(version=__version__)
+
+
+@bp.post("/update/check")
+def check_for_update() -> Response:
+    services().updates.available(force=True)
+    return redirect(url_for("pages.settings", saved="update-check") + "#updates")
+
+
+@bp.post("/update")
+def update_app() -> Response | tuple[Response, int]:
+    updates = services().updates
+    release = updates.available()
+    if release is None:
+        return jsonify(error="Você já está na versão mais recente."), 409
+    if not updates.can_self_update:
+        return jsonify(error="Baixe a versão nova na página de download.", url=DOWNLOAD_PAGE), 409
+    try:
+        staged = updates.prepare(release)
+    except UpdateError as exc:
+        log.warning("Update to %s failed: %s", release.version, exc)
+        return jsonify(error=str(exc)), 502
+    host, port = current_app.config["SERVER_ADDRESS"]
+    # After the response: swapping the code out from under a request in flight would break it.
+    threading.Timer(0.5, updates.finish, args=(staged, host, port, services().shutdown)).start()
+    log.info("Updating to %s; restarting", release.version)
+    return jsonify(version=release.version)
 
 
 @bp.post("/quit")

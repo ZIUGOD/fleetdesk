@@ -14,6 +14,7 @@ from fleetdesk.data.repository import DataRepository
 from fleetdesk.dialogs import DialogBusyError, PickKind
 from fleetdesk.sample_data import build_workbook
 from fleetdesk.settings import SettingsStore
+from fleetdesk.updates import RELEASE_API, ZIP_ASSET, UpdateChecker
 from fleetdesk.web.services import Services
 
 SAMPLE_TRIPS = 60
@@ -79,6 +80,53 @@ def assistant() -> FakeAssistant:
     return FakeAssistant()
 
 
+class FakeReleases:
+    """Serves a fake GitHub "latest release" and its assets instead of the network."""
+
+    def __init__(self) -> None:
+        self.responses: dict[str, bytes] = {}
+        self.offline = True
+
+    def publish(self, version: str, archive: bytes) -> None:
+        import hashlib
+        import json
+
+        base = f"https://example.test/v{version}"
+        self.responses = {
+            RELEASE_API: json.dumps(
+                {
+                    "tag_name": f"v{version}",
+                    "html_url": base,
+                    "assets": [
+                        {"name": ZIP_ASSET, "browser_download_url": f"{base}/{ZIP_ASSET}"},
+                        {
+                            "name": f"{ZIP_ASSET}.sha256",
+                            "browser_download_url": f"{base}/{ZIP_ASSET}.sha256",
+                        },
+                    ],
+                }
+            ).encode(),
+            f"{base}/{ZIP_ASSET}": archive,
+            f"{base}/{ZIP_ASSET}.sha256": f"{hashlib.sha256(archive).hexdigest()}  x".encode(),
+        }
+        self.offline = False
+
+    def __call__(self, url: str, timeout: float) -> bytes:
+        if self.offline or url not in self.responses:
+            raise OSError("offline")
+        return self.responses[url]
+
+
+@pytest.fixture
+def releases() -> FakeReleases:
+    return FakeReleases()
+
+
+@pytest.fixture
+def updates(releases: FakeReleases) -> UpdateChecker:
+    return UpdateChecker(current_version="0.1.0", fetch=releases, runtime=None)
+
+
 class ShutdownSpy:
     """Records shutdown requests instead of killing the test process."""
 
@@ -105,6 +153,7 @@ def app(
     picker: FakePicker,
     shutdown_calls: ShutdownSpy,
     assistant: FakeAssistant,
+    updates: UpdateChecker,
 ) -> Flask:
     app = create_app(
         Services(
@@ -113,6 +162,7 @@ def app(
             pick_path=picker,
             shutdown=shutdown_calls.append_call,
             assistant=assistant,
+            updates=updates,
         )
     )
     app.config.update(TESTING=True)

@@ -44,8 +44,18 @@ jobs:
           Expand-Archive $zip "$env:RUNNER_TEMP\python"
           & "$env:RUNNER_TEMP\python\python.exe" --version
       - run: '& "$env:RUNNER_TEMP\python\python.exe" scripts/build_portable.py'
+      - name: Install Inno Setup
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+      - run: '& "$env:RUNNER_TEMP\python\python.exe" scripts/build_installer.py'
+      - name: Install, start and uninstall FleetDesk
+        run: ./scripts/smoke_test_installer.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: FleetDesk-windows
-          path: dist/FleetDesk-*-windows.zip
+          path: |
+            dist/FleetDesk-*-windows.zip
+            dist/FleetDesk-Setup.exe
           retention-days: 7

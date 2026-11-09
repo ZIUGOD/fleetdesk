@@ -72,13 +72,19 @@ USAR NO DIA A DIA
   Configurações > Encerrar FleetDesk.
 
 ATUALIZAR PARA UMA VERSÃO NOVA
+Quando houver uma versão nova, o FleetDesk avisa no topo da tela: clique em
+"Atualizar agora" e ele se atualiza e reabre sozinho. Suas configurações são mantidas.
+
+Se o aviso pedir para baixar de novo:
 1. Configurações > Encerrar FleetDesk.
 2. Baixe a versão nova na página de download (endereço no topo deste arquivo).
 3. Apague a pasta antiga e extraia a nova no mesmo lugar.
-4. Dê dois cliques em "Iniciar FleetDesk". Suas configurações são mantidas.
+4. Dê dois cliques em "Iniciar FleetDesk".
 
 PRIVACIDADE
-O FleetDesk roda só neste computador e não envia dados para a internet.
+O FleetDesk roda só neste computador e os dados das planilhas nunca saem dele. A única
+conexão com a internet é a verificação de versões novas, que pode ser desligada em
+Configurações > Atualizações.
 
 DESINSTALAR
 Apague esta pasta e o ícone da Área de Trabalho. As configurações ficam em

@@ -19,6 +19,7 @@ from fleetdesk.assistant import LocalAssistant
 from fleetdesk.data.repository import DataRepository
 from fleetdesk.dialogs import pick_path
 from fleetdesk.settings import SettingsStore, default_settings_path
+from fleetdesk.updates import DOWNLOAD_PAGE, UpdateChecker
 from fleetdesk.web.routes import audit_for, bp, load_dataset
 from fleetdesk.web.security import install_local_only_guard
 from fleetdesk.web.services import Services, services
@@ -36,6 +37,7 @@ def create_app(
 ) -> Flask:
     app = Flask(__name__)
     app.config["ALLOWED_HOSTS"] = {f"{host}:{port}", f"localhost:{port}"}
+    app.config["SERVER_ADDRESS"] = (host, port)
 
     app_services = services_override or Services(
         settings=SettingsStore(default_settings_path()),
@@ -43,6 +45,7 @@ def create_app(
         pick_path=pick_path,
         shutdown=_exit_soon,
         assistant=LocalAssistant(),
+        updates=UpdateChecker(),
     )
     app_services.install(app)
 
@@ -99,6 +102,9 @@ def _layout_context() -> dict[str, Any]:
         "source_is_folder": os.path.isdir(source) if source else False,
         "dataset": dataset,
         "audit_alerts": audit_for(dataset).attention_count if dataset else 0,
+        "update": services().updates.cached() if settings.check_updates else None,
+        "can_self_update": services().updates.can_self_update,
+        "download_page": DOWNLOAD_PAGE,
     }
 
 
@@ -109,9 +115,16 @@ def url_with(**params: Any) -> str:
     return url_for(endpoint, **{k: v for k, v in args.items() if v not in ("", None)})
 
 
-def _warm_cache(app: Flask) -> None:
+def _warm_up(app: Flask) -> None:
+    """Load the data and look for updates in the background, so the first page is fast."""
     with app.app_context():
         load_dataset()
+        app_services = services()
+        app_services.updates.cleanup()
+        if app_services.settings.load().check_updates:
+            release = app_services.updates.available()
+            if release:
+                log.info("Update available: %s", release.version)
 
 
 def is_port_in_use(host: str, port: int) -> bool:
@@ -137,7 +150,7 @@ def main() -> None:
         return
 
     app = create_app(port=args.port)
-    threading.Thread(target=_warm_cache, args=(app,), daemon=True).start()
+    threading.Thread(target=_warm_up, args=(app,), daemon=True).start()
     if not args.no_browser:
         threading.Timer(1.0, webbrowser.open, args=(url,)).start()
 

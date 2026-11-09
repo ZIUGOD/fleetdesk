@@ -102,16 +102,21 @@
         Faturamento, viagens, fechamento da folha e uma auditoria que aponta possíveis erros,
         tudo lido das planilhas de fretes, sem mudar a rotina de ninguém.
       </p>
-      <a class="download" id="download" href="https://github.com/ZIUGOD/fleetdesk/releases/latest/download/FleetDesk-windows.zip">
+      <a class="download" id="download" href="https://github.com/ZIUGOD/fleetdesk/releases/latest/download/FleetDesk-Setup.exe">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>
         </svg>
-        Baixar para Windows
+        Baixar instalador para Windows
       </a>
-      <div class="meta" id="release-meta">Versão mais recente · cerca de 16 MB</div>
+      <div class="meta" id="release-meta">Versão mais recente · cerca de 15 MB</div>
+      <div class="meta">
+        Ou baixe a <a href="https://github.com/ZIUGOD/fleetdesk/releases/latest/download/FleetDesk-windows.zip">versão portátil (.zip)</a>,
+        para computadores em que o Windows bloqueia o instalador.
+      </div>
       <div class="chips">
         <span class="chip">Windows 10 e 11</span>
-        <span class="chip">Não precisa instalar nada</span>
+        <span class="chip">Instala sem ser administrador</span>
+        <span class="chip">Avisa e se atualiza sozinho</span>
         <span class="chip">Funciona sem internet</span>
         <span class="chip">Seus dados não saem do computador</span>
       </div>
@@ -124,14 +129,15 @@
     <p class="section-lead">Leva dois minutos e só precisa ser feito uma vez.</p>
     <div class="steps">
       <div class="card step">
-        <h3>Extraia o arquivo baixado</h3>
-        <p>Na pasta Downloads, clique com o botão direito em <strong>FleetDesk-windows.zip</strong> e escolha
-          <strong>Extrair tudo...</strong>. Use uma pasta fixa, como Documentos.</p>
+        <h3>Abra o instalador</h3>
+        <p>Dê dois cliques em <strong>FleetDesk-Setup.exe</strong>, na pasta Downloads. Se aparecer
+          <em>"O Windows protegeu o computador"</em>, clique em <strong>Mais informações</strong> e depois em
+          <strong>Executar assim mesmo</strong>.</p>
       </div>
       <div class="card step">
-        <h3>Abra o FleetDesk</h3>
-        <p>Na pasta extraída, dê dois cliques em <strong>Iniciar FleetDesk</strong>. Ele abre no navegador e
-          cria um ícone na Área de Trabalho para as próximas vezes.</p>
+        <h3>Instale</h3>
+        <p>Clique em <strong>Avançar</strong> e <strong>Instalar</strong>. O FleetDesk abre sozinho no navegador
+          e ganha um ícone na Área de Trabalho e no menu Iniciar.</p>
       </div>
       <div class="card step">
         <h3>Escolha as planilhas</h3>
@@ -140,10 +146,13 @@
       </div>
     </div>
     <p class="tip">
-      <strong>Para não ver aviso do Windows:</strong> antes de extrair, clique com o botão direito no
-      <code>.zip</code> &gt; <strong>Propriedades</strong> &gt; marque <strong>Desbloquear</strong> &gt; <strong>OK</strong>.
-      Se o aviso aparecer mesmo assim, clique em <strong>Mais informações &gt; Executar assim mesmo</strong>.
-      Todo programa dentro do FleetDesk é assinado digitalmente pela Python Software Foundation.
+      <strong>Por que o Windows avisa?</strong> O instalador ainda não tem assinatura digital (está em andamento).
+      Se o Windows <strong>bloquear sem a opção "Executar assim mesmo"</strong> (acontece em computadores com o
+      Controle Inteligente de Aplicativos ligado), use a
+      <a href="https://github.com/ZIUGOD/fleetdesk/releases/latest/download/FleetDesk-windows.zip">versão portátil</a>:
+      clique com o botão direito no <code>.zip</code> &gt; <strong>Extrair tudo...</strong> e dê dois cliques em
+      <strong>Iniciar FleetDesk</strong>. Ela funciona nesses computadores porque todo programa dentro dela é
+      assinado pela Python Software Foundation.
     </p>
   </section>
 
@@ -182,7 +191,7 @@
         <h3>Guia do usuário</h3><p>Instalação, primeiro uso, Google Drive, atualização e problemas comuns.</p>
       </a>
       <a class="card" href="https://github.com/ZIUGOD/fleetdesk/blob/main/docs/guia-do-usuario.md#6-atualizar-para-uma-versão-nova">
-        <h3>Atualizar</h3><p>Encerre o FleetDesk, baixe a versão nova aqui e substitua a pasta. As configurações ficam.</p>
+        <h3>Atualizar</h3><p>O FleetDesk avisa no topo da tela quando sai uma versão nova: clique em <strong>Atualizar agora</strong>. As configurações ficam.</p>
       </a>
       <a class="card" href="https://github.com/ZIUGOD/fleetdesk/releases">
         <h3>Todas as versões</h3><p>Histórico de versões, com o código SHA-256 de cada arquivo para conferência.</p>
@@ -197,12 +206,12 @@
 </main>
 
 <script>
-  // Show the latest release's version, date and size. The download link works without this:
-  // it always points to the newest release asset.
+  // Show the latest installer's version, date and size. The download link works without this:
+  // it always points to the newest release asset. Releases before 0.2.0 had no installer.
   fetch("https://api.github.com/repos/ZIUGOD/fleetdesk/releases/latest")
     .then(response => response.ok ? response.json() : Promise.reject(response.status))
     .then(release => {
-      const asset = (release.assets || []).find(a => a.name === "FleetDesk-windows.zip");
+      const asset = (release.assets || []).find(a => a.name === "FleetDesk-Setup.exe");
       if (!asset) return;
       const date = new Date(release.published_at).toLocaleDateString("pt-BR");
       const size = (asset.size / 1048576).toLocaleString("pt-BR", { maximumFractionDigits: 1 });

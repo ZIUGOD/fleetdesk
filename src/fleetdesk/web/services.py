@@ -12,6 +12,7 @@ from fleetdesk.assistant import LocalAssistant
 from fleetdesk.data.repository import DataRepository
 from fleetdesk.dialogs import PickKind
 from fleetdesk.settings import SettingsStore
+from fleetdesk.updates import UpdateChecker
 
 _EXTENSION_KEY = "fleetdesk"
 
@@ -26,6 +27,8 @@ class Services:
     shutdown: Callable[[], None]
     #: Local LLM used for the optional audit summary.
     assistant: LocalAssistant
+    #: Release checks and in-place updates.
+    updates: UpdateChecker
 
     def install(self, app: Flask) -> None:
         app.extensions[_EXTENSION_KEY] = self

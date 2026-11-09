@@ -75,25 +75,39 @@ python -m fleetdesk.sample_data sample-data --months 3
 python -m fleetdesk               # then choose sample-data/ in Configurações
 ```
 
-### For end users: portable zip
+### For end users: installer, portable zip and in-app updates
 
 ```powershell
-.venv\Scripts\python scripts\build_portable.py
+.venv\Scripts\python scripts\build_portable.py   # dist/FleetDesk-<version>-windows.zip
+.venv\Scripts\python scripts\build_installer.py  # dist/FleetDesk-Setup.exe (needs Inno Setup 6)
 ```
 
-builds `dist/FleetDesk-<version>-windows.zip` (~16 MB). The user extracts it and
-double-clicks `Iniciar FleetDesk.bat`, which creates a Desktop shortcut and opens the app.
-No Python, installer, admin rights or internet connection is needed. The zip ships a
-`LEIA-ME.txt` with instructions in Portuguese.
+Both ship the same bundle: the official **embeddable Python** from python.org, tkinter for
+the native file pickers, and FleetDesk with its pure-Python dependencies. No Python, admin
+rights or internet connection is needed to run it.
 
-- It bundles the official **embeddable Python** from python.org plus tkinter for the native
-  file pickers, instead of a PyInstaller `.exe`. An unsigned executable is blocked by
-  SmartScreen and Smart App Control.
-- The build verifies Authenticode signatures and **fails if any unsigned native binary** would
-  ship. MarkupSafe's optional C speed-up is dropped in favour of its pure-Python fallback.
+- **Installer** ([`installer/fleetdesk.iss`](installer/fleetdesk.iss), Inno Setup): per-user
+  install to `%LOCALAPPDATA%\Programs\FleetDesk`, Start menu and Desktop shortcuts, an entry
+  in *Settings → Apps*, Brazilian Portuguese UI. It stops a running FleetDesk before
+  installing or uninstalling. CI installs it silently, checks that FleetDesk starts and
+  uninstalls it again on every push ([`smoke_test_installer.ps1`](scripts/smoke_test_installer.ps1)).
+- **Portable zip**: extract and double-click `Iniciar FleetDesk.bat`, which creates a Desktop
+  shortcut. It is the fallback for PCs where Windows blocks the installer.
+- **Why not a PyInstaller `.exe`**: the build verifies Authenticode signatures and **fails if
+  any unsigned native binary** would ship, so everything that runs after installation is the
+  PSF-signed Python. MarkupSafe's optional C speed-up is dropped for its pure-Python fallback.
+  The installer itself is not signed yet (a SignPath Foundation application is pending), so
+  SmartScreen warns before it runs and **Smart App Control blocks it outright**. On those PCs
+  the zip works.
+- **In-app updates** ([`updates.py`](src/fleetdesk/updates.py)): at start-up FleetDesk asks
+  GitHub's release API for the latest version and shows a banner. *Atualizar agora* downloads
+  the release zip, verifies its SHA-256, replaces only the pure-Python `Lib/site-packages` and
+  restarts through the signed `pythonw.exe`. It never runs a downloaded executable, so it also
+  works under Smart App Control. A release that changes the bundled Python asks for a
+  reinstall instead. The check can be turned off in *Configurações*.
 - Without a console window, logs go to `%APPDATA%\FleetDesk\fleetdesk.log`. Launching a
   second time just reopens the running instance, and *Configurações → Encerrar FleetDesk*
-  stops it, for example before replacing the folder with a newer version.
+  stops it.
 
 `scripts/FleetDesk.bat` is the developer-machine alternative: it installs into a local
 `.venv` and needs Python already installed.
@@ -103,14 +117,15 @@ No Python, installer, admin rights or internet connection is needed. The zip shi
 Pushing a version tag publishes a release, and nothing is built by hand:
 
 ```powershell
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 [`release.yml`](.github/workflows/release.yml) runs the tests on Windows, checks that the tag
-matches `pyproject.toml`, builds the portable zip and attaches it to a GitHub Release as
-`FleetDesk-windows.zip` together with its SHA-256. The asset name never changes, so
-`releases/latest/download/FleetDesk-windows.zip` always points to the newest build.
+matches `pyproject.toml`, builds the zip and the installer, smoke-tests the installer, and
+attaches `FleetDesk-Setup.exe` and `FleetDesk-windows.zip` to a GitHub Release with their
+SHA-256 files. Asset names never change, so `releases/latest/download/<asset>` always points
+to the newest build; the in-app updater relies on the zip and its checksum.
 
 The download page for end users (Portuguese) lives in [`site/`](site/) and is published to
 GitHub Pages by [`pages.yml`](.github/workflows/pages.yml) at
@@ -235,6 +250,10 @@ FleetDesk never uploads anything. Workbooks are read in place, settings live in 
 profile, and `.gitignore` excludes every spreadsheet format so real data cannot be committed
 by accident. All screenshots in this repository use generated, fictitious data.
 
+Its only network traffic is the optional update check: a request for the latest release to
+GitHub's public API at start-up (and the download, when the user clicks *Atualizar agora*). It
+sends no user data and can be disabled in *Configurações → Atualizações*.
+
 ## Project status
 
 FleetDesk is in use as a **read-and-check tool**: dashboard, freights, fuel, payroll closing,
@@ -250,7 +269,8 @@ version, also listed for users in the [user guide](docs/guia-do-usuario.md#7-o-q
   ignored.
 - **Inferred periods.** The payroll and per-truck tabs have no period column, so they take
   the period of most freights in the same workbook.
-- **Manual updates.** Users download the new zip and replace the folder; settings persist.
+- **Unsigned installer.** SmartScreen warns before installing, and PCs with Smart App
+  Control need the portable zip until code signing is in place.
 - **The AI summary is optional** and needs Ollama plus a ~2 GB model on the user's machine.
 
 ## Roadmap

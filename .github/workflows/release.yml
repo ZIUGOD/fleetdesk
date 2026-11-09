@@ -48,23 +48,45 @@ jobs:
       - name: Build the portable zip
         run: '& "$env:RUNNER_TEMP\python\python.exe" scripts/build_portable.py'
 
+      - name: Install Inno Setup
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+
+      - name: Build the installer
+        run: '& "$env:RUNNER_TEMP\python\python.exe" scripts/build_installer.py'
+
+      - name: Install, start and uninstall FleetDesk
+        run: ./scripts/smoke_test_installer.ps1
+
       - name: Prepare release assets
         shell: pwsh
         run: |
-          # A fixed asset name keeps releases/latest/download/FleetDesk-windows.zip valid forever.
+          # Fixed asset names keep releases/latest/download/<name> valid forever; the in-app
+          # updater downloads the zip, the download page links the installer.
           Copy-Item dist/FleetDesk-*-windows.zip FleetDesk-windows.zip
-          $hash = (Get-FileHash FleetDesk-windows.zip -Algorithm SHA256).Hash.ToLower()
-          "$hash  FleetDesk-windows.zip" | Out-File -Encoding ascii FleetDesk-windows.zip.sha256
+          Copy-Item dist/FleetDesk-Setup.exe FleetDesk-Setup.exe
+          $hashes = @{}
+          foreach ($asset in "FleetDesk-Setup.exe", "FleetDesk-windows.zip") {
+            $hashes[$asset] = (Get-FileHash $asset -Algorithm SHA256).Hash.ToLower()
+            "$($hashes[$asset])  $asset" | Out-File -Encoding ascii "$asset.sha256"
+          }
           $notes = @(
             "## Baixar",
             "",
-            "Baixe **FleetDesk-windows.zip** abaixo, ou use a página de download: https://ziugod.github.io/fleetdesk/",
+            "- **FleetDesk-Setup.exe**: instalador (recomendado).",
+            "- **FleetDesk-windows.zip**: versão portátil, para computadores em que o Windows bloqueia o instalador.",
             "",
-            "Instalação e uso: [Guia do usuário](https://github.com/ZIUGOD/fleetdesk/blob/main/docs/guia-do-usuario.md).",
+            "Página de download: https://ziugod.github.io/fleetdesk/ · [Guia do usuário](https://github.com/ZIUGOD/fleetdesk/blob/main/docs/guia-do-usuario.md)",
+            "",
+            "Já usa o FleetDesk? Ele avisa a versão nova no topo da tela: clique em **Atualizar agora**.",
             "",
             "Windows 10 ou 11 (64 bits). Não precisa instalar Python nem ser administrador.",
             "",
-            "SHA-256 de ``FleetDesk-windows.zip``: ``$hash``"
+            "SHA-256:",
+            "- ``FleetDesk-Setup.exe``: ``$($hashes['FleetDesk-Setup.exe'])``",
+            "- ``FleetDesk-windows.zip``: ``$($hashes['FleetDesk-windows.zip'])``"
           )
           $notes -join "`n" | Out-File -Encoding utf8 release-notes.md
 
@@ -74,6 +96,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >
           gh release create "${{ github.ref_name }}"
+          FleetDesk-Setup.exe FleetDesk-Setup.exe.sha256
           FleetDesk-windows.zip FleetDesk-windows.zip.sha256
           --title "FleetDesk ${{ github.ref_name }}"
           --notes-file release-notes.md
