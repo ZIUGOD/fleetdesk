@@ -28,13 +28,19 @@ jobs:
   # Builds the same zip a release would publish, so packaging breaks surface on every push.
   portable-build:
     runs-on: windows-latest
+    env:
+      PYTHON_VERSION: "3.14.7"
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.14"
-          cache: pip
-      - run: python scripts/build_portable.py
+      # The runner's Python ships unsigned Tcl/Tk DLLs, which Smart App Control blocks; the
+      # bundle takes them from the official, PSF-signed python.org build instead.
+      - name: Install the official python.org build
+        run: |
+          $installer = "$env:RUNNER_TEMP\python-$env:PYTHON_VERSION.exe"
+          Invoke-WebRequest "https://www.python.org/ftp/python/$env:PYTHON_VERSION/python-$env:PYTHON_VERSION-amd64.exe" -OutFile $installer
+          Start-Process $installer -Wait -ArgumentList "/quiet", "InstallAllUsers=0", "Include_launcher=0", "Include_test=0", "Shortcuts=0", "AssociateFiles=0", "PrependPath=0", "TargetDir=$env:RUNNER_TEMP\python"
+          & "$env:RUNNER_TEMP\python\python.exe" --version
+      - run: '& "$env:RUNNER_TEMP\python\python.exe" scripts/build_portable.py'
       - uses: actions/upload-artifact@v4
         with:
           name: FleetDesk-windows
