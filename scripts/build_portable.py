@@ -149,16 +149,23 @@ def _signatures(paths: list[Path]) -> dict[Path, tuple[str, str]]:
         "$input | ForEach-Object { $s = Get-AuthenticodeSignature -LiteralPath $_; "
         "'{0}|{1}|{2}' -f $s.Status, $s.SignerCertificate.Subject, $_ }"
     )
-    out = subprocess.run(
+    # Started from PowerShell 7 (as on GitHub Actions), Windows PowerShell inherits a module
+    # path it cannot load Get-AuthenticodeSignature from; a clean one makes it use its own.
+    env = {k: v for k, v in os.environ.items() if k.upper() != "PSMODULEPATH"}
+    completed = subprocess.run(
         ["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
         input="\n".join(str(p) for p in paths),
         capture_output=True,
         text=True,
         check=True,
-    ).stdout
+        env=env,
+    )
     result: dict[Path, tuple[str, str]] = {}
-    for line in out.splitlines():
+    for line in completed.stdout.splitlines():
         status, subject, path = line.split("|", 2)
+        if not status:
+            # Fail loudly: an empty status means the check itself did not run.
+            sys.exit(f"Signature check failed to run: {completed.stderr.strip()[:500]}")
         result[Path(path.strip())] = (status, subject)
     return result
 
