@@ -16,10 +16,12 @@ Run from the repository root with the project's virtual environment (Windows onl
 
 from __future__ import annotations
 
+import os
 import platform
 import shutil
 import subprocess
 import sys
+import traceback
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -248,5 +250,20 @@ def _zip_folder(folder: Path, archive_path: Path) -> None:
             archive.write(path, Path(folder.name) / path.relative_to(folder))
 
 
+def _report_failure(message: str) -> None:
+    # On GitHub Actions, raw logs need a signed-in viewer; annotations are public.
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        flat = message.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+        print(f"::error title=Portable build failed::{flat}", flush=True)
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit as exc:
+        if exc.code not in (None, 0):
+            _report_failure(str(exc.code))
+        raise
+    except Exception:
+        _report_failure(traceback.format_exc())
+        raise
