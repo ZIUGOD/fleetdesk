@@ -1,0 +1,218 @@
+{% extends "layout.html" %}
+{% block title %}Configurações{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Configurações</h1>
+    <div class="page-subtitle">Fonte de dados, empresa e aparência</div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-7">
+
+    <div class="panel panel-body mb-3" id="source">
+      <h2 class="panel-title">Fonte de dados</h2>
+      <div class="panel-subtitle mb-3">
+        Escolha uma planilha ou uma pasta inteira — por exemplo, a pasta do Google Drive sincronizada no computador.
+        Numa pasta, todas as planilhas reconhecidas (inclusive em subpastas) são somadas. O sistema relê sozinho sempre que algo for salvo.
+      </div>
+
+      {% if error %}
+      <div class="alert-error"><i class="bi bi-exclamation-circle"></i><span>{{ error }}</span></div>
+      {% elif saved == 'source' %}
+      <div class="alert-success"><i class="bi bi-check-circle"></i><span>Fonte de dados atualizada.</span></div>
+      {% elif not source %}
+      <div class="alert-success"><i class="bi bi-info-circle"></i><span>Para começar, escolha a planilha de fretes ou a pasta onde ela fica.</span></div>
+      {% endif %}
+
+      {% if source %}
+      <div class="source-current">
+        <i class="bi {{ 'bi-folder2-open' if source_is_folder else 'bi-file-earmark-spreadsheet' }}"></i>
+        <div class="min-w-0">
+          <div class="source-current-kind">{{ 'Pasta' if source_is_folder else 'Planilha' }} em uso</div>
+          <div class="source-current-path" title="{{ source }}">{{ source }}</div>
+        </div>
+      </div>
+      {% endif %}
+
+      <form method="post" id="source-form">
+        <div class="d-flex flex-wrap gap-2 mb-2">
+          <button type="button" class="btn-accent" data-pick="file">
+            <i class="bi bi-file-earmark-spreadsheet"></i><span>Escolher planilha…</span>
+          </button>
+          <button type="button" class="btn-ghost btn-lg" data-pick="folder">
+            <i class="bi bi-folder2-open"></i><span>Escolher pasta…</span>
+          </button>
+        </div>
+        <div class="panel-subtitle" id="picker-hint" hidden>
+          <i class="bi bi-hourglass-split"></i> Uma janela do Windows foi aberta para você escolher. Se não aparecer, procure-a na barra de tarefas.
+        </div>
+
+        <details class="mt-3" {{ 'open' if error }}>
+          <summary class="panel-subtitle" style="cursor:pointer">Ou digite o caminho manualmente</summary>
+          <div class="d-flex gap-2 mt-2">
+            <input type="text" id="source-input" name="source" class="form-control mono-input" spellcheck="false"
+                   value="{{ source }}" placeholder="C:\...\planilha.xlsx  ou  G:\Meu Drive\Fretes">
+            <button type="submit" class="btn-ghost" style="white-space:nowrap">Salvar</button>
+          </div>
+          <div class="panel-subtitle mt-1">Dica: no Explorador de Arquivos, clique com o botão direito no arquivo ou pasta e use "Copiar como caminho".</div>
+        </details>
+      </form>
+
+      {% if files %}
+      <div class="mt-4">
+        <div class="d-flex justify-content-between align-items-baseline mb-2">
+          <h3 class="panel-title" style="font-size:.82rem">Planilhas lidas</h3>
+          <span class="panel-subtitle">
+            {{ files | selectattr('status.value', 'equalto', 'ok') | list | length }} de {{ files | length }}
+            reconhecida{{ 's' if files | length != 1 }}
+          </span>
+        </div>
+        <div class="table-scroll bordered">
+          <table class="data-table">
+            <thead><tr><th>Arquivo</th><th class="end">Fretes</th><th>Situação</th></tr></thead>
+            <tbody>
+              {% for f in files %}
+              <tr class="{{ 'is-dimmed' if f.status.value != 'ok' }}">
+                <td class="truncate wide" title="{{ f.name }}">{{ f.name }}</td>
+                <td class="end num">{{ f.freights | number if f.status.value == 'ok' else '—' }}</td>
+                <td>
+                  {% if f.status.value == 'ok' and f.duplicated_freights %}
+                    <span class="tag warning" title="Esses fretes já aparecem em outra planilha da pasta e estão sendo somados duas vezes">
+                      <i class="bi bi-exclamation-triangle"></i>{{ f.duplicated_freights | number }} repetidos de outra planilha
+                    </span>
+                  {% elif f.status.value == 'ok' %}
+                    <span class="tag positive"><i class="bi bi-check2"></i>Lida</span>
+                  {% elif f.status.value == 'ignored' %}
+                    <span class="tag neutral" title="{{ f.reason }}">Ignorada · formato não reconhecido</span>
+                  {% else %}
+                    <span class="tag negative" title="{{ f.reason }}"><i class="bi bi-x-circle"></i>Erro ao ler</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="panel panel-body mb-3">
+      <h2 class="panel-title">Empresa</h2>
+      <div class="panel-subtitle mb-3">Nome exibido no topo do menu e no título das janelas.</div>
+      {% if saved == 'company' %}
+      <div class="alert-success"><i class="bi bi-check-circle"></i><span>Nome da empresa salvo.</span></div>
+      {% endif %}
+      <form method="post" class="d-flex gap-2">
+        <input type="text" name="company_name" class="form-control mono-input" maxlength="60"
+               value="{{ company_name }}" placeholder="Ex.: Transportadora Exemplo">
+        <button type="submit" class="btn-ghost" style="white-space:nowrap">Salvar</button>
+      </form>
+    </div>
+
+    <div class="panel panel-body mb-3" id="ai">
+      <h2 class="panel-title"><i class="bi bi-stars me-1"></i>Assistente de IA (opcional)</h2>
+      <div class="panel-subtitle mb-3">
+        Gera o resumo da Auditoria em linguagem simples. Usa o Ollama, um programa gratuito que roda a IA
+        neste computador: nenhum dado vai para a internet. Sem ele, a Auditoria funciona normalmente.
+      </div>
+      {% if saved == 'ai' %}
+      <div class="alert-success"><i class="bi bi-check-circle"></i><span>Modelo salvo.</span></div>
+      {% endif %}
+      {% if assistant.available %}
+      <form method="post" class="d-flex gap-2 align-items-end">
+        <div class="flex-grow-1">
+          <label for="ai-model" class="field-label mb-1">Modelo</label>
+          <select id="ai-model" name="ai_model" class="form-select form-select-sm mono-input">
+            <option value="" {{ 'selected' if not ai_model }}>Automático ({{ assistant.model }})</option>
+            {% for model in assistant.models %}
+            <option value="{{ model }}" {{ 'selected' if ai_model == model }}>{{ model }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn-ghost" style="white-space:nowrap">Salvar</button>
+      </form>
+      <div class="panel-subtitle mt-2">Modelos menores (3b) respondem mais rápido; maiores (7b) escrevem melhor, mas precisam de um computador mais forte.</div>
+      {% else %}
+      <div class="alert-error" style="margin-bottom:0"><i class="bi bi-plug"></i><span>{{ assistant.message }}</span></div>
+      {% endif %}
+    </div>
+
+    <div class="panel panel-body">
+      <h2 class="panel-title">Aparência</h2>
+      <div class="panel-subtitle mb-3">Escolha o tema da interface. "Automático" segue o tema do Windows.</div>
+      <form method="post">
+        <div class="theme-options">
+          {% for value, label, icon in [('light', 'Claro', 'bi-sun'), ('dark', 'Escuro', 'bi-moon-stars'), ('system', 'Automático', 'bi-circle-half')] %}
+          <label class="theme-option">
+            <input type="radio" name="theme" value="{{ value }}" {{ 'checked' if theme == value }} onchange="this.form.submit()">
+            <div class="preview">
+              <div class="thumb {{ value }}">
+                {% if value != 'system' %}<div class="thumb-side"></div><div class="thumb-main"><b></b><b></b></div>{% endif %}
+              </div>
+              <div class="theme-name"><i class="bi {{ icon }}"></i>{{ label }}</div>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+        <noscript><button type="submit" class="btn-accent mt-3">Aplicar tema</button></noscript>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-xl-5">
+    <div class="panel panel-body">
+      <h2 class="panel-title">Sobre</h2>
+      <dl class="about-list mb-0">
+        <dt>Versão</dt><dd>FleetDesk {{ app_version }}</dd>
+        {% if dataset and dataset.last_modified %}
+        <dt>Última alteração nos dados</dt><dd>{{ dataset.last_modified.strftime('%d/%m/%Y às %H:%M') }}</dd>
+        <dt>Lida pelo sistema</dt><dd>{{ dataset.loaded_at.strftime('%d/%m/%Y às %H:%M:%S') }}</dd>
+        {% endif %}
+        <dt>Privacidade</dt>
+        <dd>Roda apenas neste computador, sem acesso à internet. Os dados nunca saem da máquina.</dd>
+      </dl>
+    </div>
+
+    <div class="panel panel-body mt-3">
+      <h2 class="panel-title">Encerrar o FleetDesk</h2>
+      <div class="panel-subtitle mb-3">
+        Fechar o navegador não desliga o FleetDesk: ele continua rodando em segundo plano, sem pesar
+        no computador. Use este botão para desligá-lo de vez, por exemplo antes de instalar uma versão nova.
+      </div>
+      <form method="post" action="{{ url_for('pages.quit_app') }}"
+            onsubmit="return confirm('Encerrar o FleetDesk agora?')">
+        <button type="submit" class="btn-ghost"><i class="bi bi-power"></i> Encerrar FleetDesk</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-pick]').forEach(button => {
+  button.addEventListener('click', async () => {
+    const buttons = document.querySelectorAll('[data-pick]');
+    const hint = document.getElementById('picker-hint');
+    buttons.forEach(b => { b.disabled = true; });
+    hint.hidden = false;
+    try {
+      const response = await fetch('{{ url_for("pages.pick_source", kind="__kind__") }}'.replace('__kind__', button.dataset.pick), { method: 'POST' });
+      const result = await response.json();
+      if (result.error) { alert(result.error); return; }
+      if (result.path) {
+        document.getElementById('source-input').value = result.path;
+        document.getElementById('source-form').submit();
+      }
+    } finally {
+      buttons.forEach(b => { b.disabled = false; });
+      hint.hidden = true;
+    }
+  });
+});
+</script>
+{% endblock %}

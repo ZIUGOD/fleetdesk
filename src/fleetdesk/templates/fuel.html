@@ -1,0 +1,78 @@
+{% extends "layout.html" %}
+{% block title %}Combustível{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Combustível</h1>
+    <div class="page-subtitle">Abastecimentos, consumo e custo por litro</div>
+  </div>
+  <span class="pill">{{ rows | length | number }} abastecimentos</span>
+</div>
+
+{% with fields = [
+  ('period', 'Competência', periods, selected_period, 'Todas'),
+  ('driver', 'Motorista', drivers, selected_driver, 'Todos'),
+] %}{% include "_filters.html" %}{% endwith %}
+
+{% if rows %}
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="panel kpi compact">
+      <div class="kpi-label">Total gasto</div>
+      <div class="kpi-value num">{{ total_spent | brl }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="panel kpi compact">
+      <div class="kpi-label">Litros abastecidos</div>
+      <div class="kpi-value num">{{ total_liters | number(1) }} L</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="panel kpi compact">
+      <div class="kpi-label">Preço médio</div>
+      <div class="kpi-value num">{{ (total_spent / total_liters) | brl if total_liters else '—' }}<small class="unit">/L</small></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Data</th><th>Placa</th><th>Motorista</th><th>Posto</th><th>Tipo</th>
+          <th class="end">KM</th><th class="end">Litros</th><th class="end">R$/L</th><th class="end">Total</th>
+          <th class="end">KM/L</th><th>Pagamento</th><th>Comp.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="num">{{ r.date.strftime('%d/%m/%Y') }}</td>
+          <td><span class="plate">{{ r.plate }}</span></td>
+          <td class="strong">{{ r.driver }}</td>
+          <td>{{ r.station }}</td>
+          <td>{{ r.fuel_type }}</td>
+          <td class="end num">{{ r.odometer_km | number if r.odometer_km else '—' }}</td>
+          <td class="end num">{{ r.liters | number(1) }}</td>
+          <td class="end num">{{ r.price_per_liter | number(2) if r.price_per_liter else '—' }}</td>
+          <td class="end num strong">{{ r.total | brl }}</td>
+          <td class="end num">{{ r.km_per_liter | number(2) if r.km_per_liter else '—' }}</td>
+          <td>{{ r.payment_method }}</td>
+          <td>{{ r.period }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="panel empty-state">
+  <i class="bi bi-fuel-pump"></i>
+  <strong>Nenhum abastecimento lançado ainda</strong>
+  Os registros da aba COMBUSTÍVEL da planilha aparecem aqui assim que forem preenchidos.
+</div>
+{% endif %}
+{% endblock %}

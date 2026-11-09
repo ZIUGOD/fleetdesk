@@ -1,0 +1,141 @@
+{% extends "layout.html" %}
+{% from "_macros.html" import money_value %}
+{% block title %}Dashboard{% endblock %}
+
+{% macro money_tile(label, icon, value, note='', highlight=false) %}
+<div class="panel kpi {{ 'highlight' if highlight }}">
+  <div class="kpi-label"><span class="kpi-icon"><i class="bi {{ icon }}"></i></span>{{ label }}</div>
+  <div class="kpi-value" title="{{ value | brl }}">{{ money_value(value) }}</div>
+  <div class="kpi-note">{{ caller() if caller else note }}</div>
+</div>
+{% endmacro %}
+
+{% macro cost_tile(label, value, empty_note) %}
+<div class="panel kpi compact">
+  <div class="kpi-label">{{ label }}</div>
+  {% if value %}
+  <div class="kpi-value" title="{{ value | brl }}">{{ money_value(value) }}</div>
+  {% else %}
+  <div class="kpi-value text-subtle">—</div><div class="kpi-note">{{ empty_note }}</div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro chart_panel(title, subtitle, canvas_id) %}
+<div class="panel panel-body h-100">
+  <div class="panel-header"><div>
+    <h2 class="panel-title">{{ title }}</h2>
+    <div class="panel-subtitle">{{ subtitle }}</div>
+  </div></div>
+  <div class="chart-box"><canvas id="{{ canvas_id }}"></canvas></div>
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Dashboard</h1>
+    <div class="page-subtitle">
+      {{ 'Competência ' ~ filters.period if filters.period else 'Todas as competências' }}
+      {%- for value in (filters.driver, filters.customer, filters.material) if value %} · {{ value }}{% endfor %}
+    </div>
+  </div>
+  <span class="pill"><i class="bi bi-truck"></i>{{ kpis.trips | number }} viagens</span>
+</div>
+
+{% with fields = [
+  ('period', 'Competência', periods, filters.period, 'Todas'),
+  ('driver', 'Motorista', drivers, filters.driver, 'Todos'),
+  ('customer', 'Cliente', customers, filters.customer, 'Todos'),
+  ('material', 'Material', materials, filters.material, 'Todos'),
+] %}{% include "_filters.html" %}{% endwith %}
+
+{% if kpis.trips == 0 %}
+<div class="panel empty-state">
+  <i class="bi bi-funnel"></i>
+  <strong>Nenhum frete com esses filtros</strong>
+  Tente outra combinação ou limpe os filtros.
+</div>
+{% else %}
+
+<div class="row g-3 mb-3">
+  <div class="col-12 col-sm-6 col-xl-3">
+    {{ money_tile('Faturamento bruto', 'bi-cash-stack', kpis.gross_revenue,
+                  'Ticket médio ' ~ (kpis.average_ticket | brl) ~ ' por viagem') }}
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    {% call money_tile('Produção líquida', 'bi-graph-up-arrow', kpis.net_revenue) %}
+      <span class="tag neutral" title="Retenção: {{ kpis.withholding | brl }}">−{{ kpis.withholding_share | percent }} de retenção</span>
+    {% endcall %}
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    {% call money_tile('Resultado operacional', 'bi-bar-chart-line', kpis.operating_result, highlight=true) %}
+      {% if kpis.fuel == 0 and kpis.tolls == 0 %}
+      <span class="tag warning" title="O resultado ainda não desconta combustível nem pedágio">
+        <i class="bi bi-exclamation-triangle"></i> Sem combustível e pedágio
+      </span>
+      {% else %}
+      <span class="tag {{ 'positive' if kpis.operating_margin >= 0 else 'negative' }}">
+        <i class="bi {{ 'bi-arrow-up-right' if kpis.operating_margin >= 0 else 'bi-arrow-down-right' }}"></i>{{ kpis.operating_margin | percent }} de margem
+      </span>
+      {% endif %}
+    {% endcall %}
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="panel kpi">
+      <div class="kpi-label"><span class="kpi-icon"><i class="bi bi-box-seam"></i></span>Volume transportado</div>
+      <div class="kpi-value">{{ kpis.tonnes | number }}<small class="unit">t</small></div>
+      <div class="kpi-note">{{ kpis.net_per_tonne | brl }} líquido por tonelada</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-xl-3">{{ cost_tile('Comissões', kpis.commission, 'Nenhuma comissão') }}</div>
+  <div class="col-6 col-xl-3">{{ cost_tile('Folha dos motoristas', kpis.payroll_total, 'Nenhum fechamento') }}</div>
+  <div class="col-6 col-xl-3">{{ cost_tile('Combustível', kpis.fuel, 'Nenhum abastecimento lançado') }}</div>
+  <div class="col-6 col-xl-3">{{ cost_tile('Pedágio', kpis.tolls, 'Nenhum pedágio lançado') }}</div>
+</div>
+
+<div class="panel panel-body mb-3">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title">Evolução diária</h2>
+      <div class="panel-subtitle">Faturamento bruto e produção líquida por dia</div>
+    </div>
+    <div class="chart-legend">
+      <span><i class="swatch-1"></i>Faturamento bruto</span>
+      <span><i class="swatch-2"></i>Produção líquida</span>
+    </div>
+  </div>
+  <div class="chart-box" style="height:260px"><canvas id="chart-daily"></canvas></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-6">{{ chart_panel('Produção líquida por motorista', 'Todos os motoristas, do maior para o menor', 'chart-driver') }}</div>
+  <div class="col-lg-6">{{ chart_panel('Faturamento bruto por cliente', 'Os 15 maiores; o restante somado em "Outros"', 'chart-customer') }}</div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6">{{ chart_panel('Toneladas por material', 'Os 12 maiores; o restante somado em "Outros"', 'chart-material') }}</div>
+  <div class="col-lg-6">{{ chart_panel('Toneladas por origem', 'Os 12 maiores; o restante somado em "Outros"', 'chart-origin') }}</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if kpis.trips %}
+<script>
+const charts = {{ charts | tojson }};
+registerCharts(() => [
+  lineChart('chart-daily', charts.daily.labels, [
+    { label: 'Faturamento bruto', data: charts.daily.gross_revenue },
+    { label: 'Produção líquida', data: charts.daily.net_revenue },
+  ]),
+  horizontalBarChart('chart-driver', charts.by_driver, 'brl'),
+  horizontalBarChart('chart-customer', charts.by_customer, 'brl'),
+  horizontalBarChart('chart-material', charts.by_material, 'tonnes'),
+  horizontalBarChart('chart-origin', charts.by_origin, 'tonnes'),
+]);
+</script>
+{% endif %}
+{% endblock %}

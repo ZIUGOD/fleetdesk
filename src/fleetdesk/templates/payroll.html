@@ -1,0 +1,123 @@
+{% extends "layout.html" %}
+{% from "_macros.html" import money_value %}
+{% block title %}Fechamento{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Fechamento da folha</h1>
+    <div class="page-subtitle">Produção, comissão e ajustes de cada motorista</div>
+  </div>
+</div>
+
+{% with fields = [
+  ('period', 'Competência', periods, selected_period, 'Todas'),
+  ('driver', 'Motorista', drivers, selected_driver, 'Todos'),
+] %}{% include "_filters.html" %}{% endwith %}
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3">
+    <div class="panel kpi compact">
+      <div class="kpi-label">Viagens</div>
+      <div class="kpi-value">{{ totals.trips | number }}</div>
+      <div class="kpi-note">{{ totals.tonnes | number(1) }} t transportadas</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="panel kpi compact">
+      <div class="kpi-label">Produção líquida</div>
+      <div class="kpi-value" title="{{ totals.net_revenue | brl }}">{{ money_value(totals.net_revenue) }}</div>
+      <div class="kpi-note">Bruto: {{ totals.gross_revenue | brl(0) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="panel kpi compact">
+      <div class="kpi-label">Comissões</div>
+      <div class="kpi-value" title="{{ totals.commission | brl }}">{{ money_value(totals.commission) }}</div>
+      <div class="kpi-note">Ajustes: {{ totals.total_adjustments | brl(0) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="panel kpi compact highlight">
+      <div class="kpi-label">Total a pagar</div>
+      <div class="kpi-value" title="{{ totals.total_pay | brl }}">{{ money_value(totals.total_pay, 2) }}</div>
+      <div class="kpi-note">{{ rows | length }} motorista{{ 's' if rows | length != 1 }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  {% if rows %}
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          {% if show_period_column %}<th>Comp.</th>{% endif %}
+          <th>Motorista</th><th>Placa</th><th class="end">Viagens</th><th class="end">Toneladas</th>
+          <th class="end">Fat. bruto</th><th class="end">Prod. líquida</th><th class="end">% com.</th>
+          <th class="end">Comissão</th><th class="end">Ajustes</th><th class="end">Total a pagar</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr class="{{ 'is-negative' if r.total_pay < 0 else ('is-dimmed' if r.trips == 0) }}">
+          {% if show_period_column %}<td>{{ r.period }}</td>{% endif %}
+          <td class="strong"><a href="{{ url_with(driver=r.driver) }}" class="text-decoration-none">{{ r.driver }}</a></td>
+          <td>{% if r.plate %}<span class="plate">{{ r.plate }}</span>{% else %}<span class="text-subtle">—</span>{% endif %}</td>
+          <td class="end num">{{ r.trips }}</td>
+          <td class="end num">{{ r.tonnes | number(2) }}</td>
+          <td class="end num">{{ r.gross_revenue | number(2) }}</td>
+          <td class="end num">{{ r.net_revenue | number(2) }}</td>
+          <td class="end num">{{ r.commission_rate | percent(0) }}</td>
+          <td class="end num">{{ r.commission | number(2) }}</td>
+          <td class="end num {{ 'text-negative' if r.total_adjustments < 0 }}">{{ r.total_adjustments | number(2) }}</td>
+          <td class="end num strong {{ 'text-negative' if r.total_pay < 0 }}">{{ r.total_pay | brl }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="{{ 3 if show_period_column else 2 }}">Total</td>
+          <td class="end num">{{ totals.trips | number }}</td>
+          <td class="end num">{{ totals.tonnes | number(2) }}</td>
+          <td class="end num">{{ totals.gross_revenue | number(2) }}</td>
+          <td class="end num">{{ totals.net_revenue | number(2) }}</td>
+          <td></td>
+          <td class="end num">{{ totals.commission | number(2) }}</td>
+          <td class="end num">{{ totals.total_adjustments | number(2) }}</td>
+          <td class="end num">{{ totals.total_pay | brl }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-people"></i><strong>Nenhum fechamento encontrado</strong>Tente outra combinação de filtros.</div>
+  {% endif %}
+</div>
+
+{% if selected_driver %}
+{% for r in rows %}
+<div class="panel panel-body mt-3">
+  <h2 class="panel-title">Composição dos ajustes — {{ r.driver }}{% if r.period %} · {{ r.period }}{% endif %}</h2>
+  <div class="panel-subtitle mb-3">Descontos em vermelho, acréscimos em verde</div>
+  <div class="row g-2">
+    {% for label, amount in [
+      ('INSS', r.inss), ('Unimed', r.health_plan), ('Ticket alimentação', r.meal_voucher),
+      ('Adiantamento', r.advance), ('Salário', r.salary), ('Gratificação', r.bonus),
+      ('Contrib. sindical', r.union_fee), ('Empréstimo', r.loan), ('Cascalho', r.gravel_trips),
+      ('Rodotrem', r.road_train), ('Valor fixo', r.fixed_amount), ('Outros', r.other),
+    ] if amount != 0 %}
+    <div class="col-6 col-md-4 col-xl-3">
+      <div class="panel kpi compact inset">
+        <div class="kpi-label">{{ label }}</div>
+        <div class="kpi-value small-value num {{ 'text-negative' if amount < 0 else 'text-positive' }}">{{ amount | brl }}</div>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-subtle">Nenhum ajuste para este motorista.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

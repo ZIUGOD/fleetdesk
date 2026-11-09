@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FleetDesk encerrado</title>
+  <script>
+  (function () {
+    var preference = {{ theme | tojson }};
+    var dark = preference === 'system' ? window.matchMedia('(prefers-color-scheme: dark)').matches : preference === 'dark';
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  })();
+  </script>
+  <link rel="icon" href="{{ url_for('static', filename='img/fleetdesk.ico') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body style="display:grid; place-items:center; min-height:100vh; margin:0; font-family:var(--font-ui)">
+  <div class="panel empty-state" style="max-width:420px">
+    <i class="bi bi-power"></i>
+    <strong>O FleetDesk foi encerrado</strong>
+    Você já pode fechar esta aba. Para abrir de novo, use o ícone do FleetDesk na Área de Trabalho.
+  </div>
+</body>
+</html>

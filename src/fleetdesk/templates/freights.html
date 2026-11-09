@@ -1,0 +1,81 @@
+{% extends "layout.html" %}
+{% block title %}Fretes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Fretes</h1>
+    <div class="page-subtitle">
+      {{ total_rows | number }} lançamentos · {{ total_weight | number(1) }} t ·
+      {{ total_gross | brl(0) }} bruto · {{ total_net | brl(0) }} líquido
+    </div>
+  </div>
+</div>
+
+{% with fields = [
+  ('period', 'Competência', periods, filters.period, 'Todas'),
+  ('driver', 'Motorista', drivers, filters.driver, 'Todos'),
+  ('customer', 'Cliente', customers, filters.customer, 'Todos'),
+  ('material', 'Material', materials, filters.material, 'Todos'),
+] %}{% include "_filters.html" %}{% endwith %}
+
+<div class="panel">
+  {% if rows %}
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Data</th><th>Status</th><th>NF</th><th>Motorista</th><th>Placa</th><th>Origem</th>
+          <th>Cliente</th><th>Destino</th><th>Material</th><th class="end">Peso (t)</th>
+          <th class="end">Fat. bruto</th><th class="end">Prod. líquida</th><th class="end">Comissão</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in rows %}
+        <tr>
+          <td class="num">{{ f.date.strftime('%d/%m/%Y') }}</td>
+          <td>
+            {% if f.alert == 'OK' %}
+              <span class="tag positive"><i class="bi bi-check2"></i>OK</span>
+            {% elif f.alert == 'SEM VALOR LÍQUIDO' %}
+              <span class="tag warning" title="{{ f.alert }}"><i class="bi bi-exclamation-triangle"></i>Sem valor</span>
+            {% elif f.alert %}
+              <span class="tag negative" title="{{ f.alert }}"><i class="bi bi-exclamation-octagon"></i>Alerta</span>
+            {% else %}
+              <span class="text-subtle">—</span>
+            {% endif %}
+          </td>
+          <td class="num text-subtle">{{ f.invoice or '—' }}</td>
+          <td class="strong">{{ f.driver }}</td>
+          <td><span class="plate">{{ f.plate }}</span></td>
+          <td class="truncate" title="{{ f.origin }}">{{ f.origin }}</td>
+          <td>{{ f.customer }}</td>
+          <td class="truncate" title="{{ f.destination }}">{{ f.destination }}</td>
+          <td>{{ f.material }}</td>
+          <td class="end num">{{ f.weight_t | number(2) }}</td>
+          <td class="end num">{{ f.gross_revenue | number(2) }}</td>
+          <td class="end num">{{ f.net_revenue | number(2) }}</td>
+          <td class="end num">{{ f.commission | number(2) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><i class="bi bi-funnel"></i><strong>Nenhum frete encontrado</strong>Tente outra combinação de filtros.</div>
+  {% endif %}
+</div>
+
+{% if page_count > 1 %}
+<div class="pager">
+  <span>Página {{ page }} de {{ page_count }}</span>
+  <div class="pages">
+    <a href="{{ url_with(page=page - 1) }}" class="{{ 'disabled' if page == 1 }}" aria-label="Anterior"><i class="bi bi-chevron-left"></i></a>
+    {% for p in range([1, page - 2] | max, [page_count, page + 2] | min + 1) %}
+      {% if p == page %}<span class="current">{{ p }}</span>{% else %}<a href="{{ url_with(page=p) }}">{{ p }}</a>{% endif %}
+    {% endfor %}
+    <a href="{{ url_with(page=page + 1) }}" class="{{ 'disabled' if page == page_count }}" aria-label="Próxima"><i class="bi bi-chevron-right"></i></a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

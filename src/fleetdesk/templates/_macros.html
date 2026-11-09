@@ -1,0 +1,4 @@
+{#- Large money figure for KPI tiles: small currency prefix, sign before "R$". -#}
+{% macro money_value(value, decimals=0) -%}
+<small>{{ '−' if value < 0 }}R$</small>{{ value | abs | number(decimals) }}
+{%- endmacro %}

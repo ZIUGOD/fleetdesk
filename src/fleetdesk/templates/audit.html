@@ -1,0 +1,146 @@
+{% extends "layout.html" %}
+{% block title %}Auditoria{% endblock %}
+
+{% set severity_style = {
+  'error': ('negative', 'bi-x-octagon', 'Erro provável'),
+  'warning': ('warning', 'bi-exclamation-triangle', 'Atenção'),
+  'info': ('neutral', 'bi-info-circle', 'Informativo'),
+} %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Auditoria</h1>
+    <div class="page-subtitle">
+      Conferência automática das planilhas: {{ report.records_checked | number }} registros
+      {{ 'da competência ' ~ selected_period if selected_period else 'de todas as competências' }}
+    </div>
+  </div>
+</div>
+
+{% with fields = [('period', 'Competência', periods, selected_period, 'Todas')] %}{% include "_filters.html" %}{% endwith %}
+
+<div class="row g-3 mb-3">
+  {% for severity, label, note in [
+    ('error', 'Erros prováveis', 'Quase certamente errados'),
+    ('warning', 'Para conferir', 'Podem estar errados'),
+    ('info', 'Informativos', 'Fora do padrão, mas comuns'),
+  ] %}
+  <div class="col-md-4">
+    <div class="panel kpi compact">
+      <div class="kpi-label">
+        <i class="bi {{ severity_style[severity][1] }} text-{{ 'negative' if severity == 'error' else ('subtle' if severity == 'info' else 'warning') }}"></i>{{ label }}
+      </div>
+      <div class="kpi-value">{{ report.count(severity) }}</div>
+      <div class="kpi-note">{{ note }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="panel panel-body mb-3" id="ai">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title"><i class="bi bi-stars me-1"></i>Resumo com IA</h2>
+      <div class="panel-subtitle">
+        Uma IA gratuita, que roda neste computador, explica os achados em linguagem simples e diz o que conferir primeiro.
+        Nenhum dado sai da máquina.
+      </div>
+    </div>
+    {% if assistant.available %}
+    <button type="button" class="btn-accent" id="ai-button" {{ 'disabled' if not report.findings }}>
+      <i class="bi bi-stars"></i><span>Gerar resumo</span>
+    </button>
+    {% endif %}
+  </div>
+  {% if assistant.available %}
+  <div class="ai-output" id="ai-output" hidden></div>
+  <div class="panel-subtitle" id="ai-meta">Modelo: {{ assistant.model }} · costuma levar de 5 a 30 segundos.</div>
+  {% else %}
+  <div class="alert-error" style="margin-bottom:0"><i class="bi bi-plug"></i><span>{{ assistant.message }}</span></div>
+  {% endif %}
+</div>
+
+{% if not report.findings %}
+<div class="panel empty-state">
+  <i class="bi bi-patch-check"></i>
+  <strong>Nenhum problema encontrado</strong>
+  A auditoria conferiu {{ report.records_checked | number }} registros e não achou nada fora do padrão.
+</div>
+{% endif %}
+
+{% for finding in report.findings %}
+{% set tone, icon, label = severity_style[finding.severity.value] %}
+<div class="panel panel-body mb-3 finding">
+  <div class="panel-header" style="margin-bottom:.5rem">
+    <div>
+      <span class="tag {{ tone }} mb-1"><i class="bi {{ icon }}"></i>{{ label }}</span>
+      <h2 class="panel-title">{{ finding.title }}</h2>
+    </div>
+    <div class="text-end">
+      <div class="kpi-value" style="font-size:1.2rem; margin:0">{{ finding.count | number }}</div>
+      {% if finding.impact %}<div class="panel-subtitle" title="Valor envolvido, estimado">≈ {{ finding.impact | brl(0) }}</div>{% endif %}
+    </div>
+  </div>
+  <p class="finding-why">{{ finding.explanation }}</p>
+  <details>
+    <summary class="panel-subtitle">Ver {{ 'a ocorrência' if finding.count == 1 else 'as ' ~ (finding.count | number) ~ ' ocorrências' }}</summary>
+    <div class="table-scroll bordered mt-2">
+      <table class="data-table">
+        <thead><tr><th>Onde conferir</th><th>Data</th><th>Quem</th><th>Detalhe</th></tr></thead>
+        <tbody>
+          {% for issue in finding.issues[:issue_limit] %}
+          <tr>
+            <td class="text-subtle">{% if issue.ref %}aba {{ issue.ref.tab }} · <strong class="num">linha {{ issue.ref.row }}</strong>{% else %}—{% endif %}</td>
+            <td class="num">{{ issue.when.strftime('%d/%m/%Y') if issue.when else '—' }}</td>
+            <td class="strong">{{ issue.who }}</td>
+            <td style="white-space:normal">{{ issue.detail }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if finding.count > issue_limit %}
+    <div class="panel-subtitle mt-1">Mostrando {{ issue_limit }} de {{ finding.count | number }}.</div>
+    {% endif %}
+  </details>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+{% if assistant.available %}
+<script>
+document.getElementById('ai-button')?.addEventListener('click', async event => {
+  const button = event.currentTarget;
+  const output = document.getElementById('ai-output');
+  const meta = document.getElementById('ai-meta');
+  button.disabled = true;
+  button.querySelector('span').textContent = 'Analisando…';
+  meta.textContent = 'A IA está lendo os achados. Isso pode levar alguns segundos.';
+  try {
+    const body = new URLSearchParams({ period: {{ selected_period | tojson }} });
+    const response = await fetch({{ url_for('pages.audit_summary') | tojson }}, { method: 'POST', body });
+    const result = await response.json();
+    output.hidden = false;
+    if (result.error) {
+      output.classList.add('is-error');
+      output.textContent = result.error;
+      meta.textContent = '';
+    } else {
+      output.classList.remove('is-error');
+      output.textContent = result.text;  // textContent: model output is never parsed as HTML
+      meta.textContent = `Gerado por ${result.model} em ${result.seconds.toLocaleString('pt-BR')} s, a partir dos achados abaixo. Confira sempre na planilha.`;
+    }
+  } catch (error) {
+    output.hidden = false;
+    output.classList.add('is-error');
+    output.textContent = 'Não foi possível gerar o resumo: ' + error;
+  } finally {
+    button.disabled = false;
+    button.querySelector('span').textContent = 'Gerar de novo';
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

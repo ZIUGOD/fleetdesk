@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% endblock %} · {{ company_name or 'FleetDesk' }}</title>
+  <script>
+  // Resolve the theme before first paint to avoid a light/dark flash.
+  (function () {
+    var preference = {{ theme | tojson }};
+    var media = window.matchMedia('(prefers-color-scheme: dark)');
+    function apply() {
+      var theme = preference === 'system' ? (media.matches ? 'dark' : 'light') : preference;
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute('data-bs-theme', theme);
+    }
+    apply();
+    if (preference === 'system') {
+      media.addEventListener('change', function () {
+        apply();
+        if (window.redrawCharts) window.redrawCharts();
+      });
+    }
+  })();
+  </script>
+  <link rel="icon" href="{{ url_for('static', filename='img/fleetdesk.ico') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+
+{% macro nav_link(endpoint, icon, label) %}
+<a href="{{ url_for(endpoint) }}" class="{{ 'active' if request.endpoint == endpoint }}">
+  <i class="bi {{ icon }}"></i> {{ label }}
+</a>
+{% endmacro %}
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-mark"><i class="bi bi-truck-front-fill"></i></div>
+    <div class="min-w-0">
+      <div class="brand-name text-truncate">{{ company_name or 'FleetDesk' }}</div>
+      <div class="brand-tagline">{{ 'FleetDesk' if company_name else 'Gestão de frota' }}</div>
+    </div>
+  </div>
+
+  <nav>
+    <div class="nav-group">Visão geral</div>
+    {{ nav_link('pages.dashboard', 'bi-grid-1x2', 'Dashboard') }}
+    <a href="{{ url_for('pages.audit') }}" class="{{ 'active' if request.endpoint == 'pages.audit' }}">
+      <i class="bi bi-clipboard2-check"></i> Auditoria
+      {% if audit_alerts %}<span class="nav-badge" title="{{ audit_alerts }} tipo(s) de problema para conferir">{{ audit_alerts }}</span>{% endif %}
+    </a>
+
+    <div class="nav-group">Operação</div>
+    {{ nav_link('pages.freights', 'bi-box-seam', 'Fretes') }}
+    {{ nav_link('pages.fuel', 'bi-fuel-pump', 'Combustível') }}
+
+    <div class="nav-group">Pessoal</div>
+    {{ nav_link('pages.payroll', 'bi-people', 'Fechamento') }}
+    {{ nav_link('pages.adjustments', 'bi-sliders2', 'Ajustes de folha') }}
+
+    <div class="nav-group">Sistema</div>
+    {{ nav_link('pages.settings', 'bi-gear', 'Configurações') }}
+  </nav>
+
+  <div class="sidebar-source">
+    <div class="source-title">
+      <i class="bi {{ 'bi-folder2-open' if source_is_folder else 'bi-file-earmark-spreadsheet' }}"></i> Fonte de dados
+    </div>
+    <a href="{{ url_for('pages.settings') }}" class="source-name" title="{{ source_name }}">{{ source_name or 'Nenhuma escolhida' }}</a>
+    {% if dataset %}
+      {% if source_is_folder %}
+      <div class="source-meta">Pasta · {{ dataset.workbook_count }} planilha{{ 's' if dataset.workbook_count != 1 }}</div>
+      {% endif %}
+      {% if dataset.last_modified %}
+      <div class="source-meta">Última alteração {{ dataset.last_modified.strftime('%d/%m %H:%M') }}</div>
+      {% endif %}
+      {% if dataset.duplicated_freights %}
+      <a href="{{ url_for('pages.settings') }}#source" class="tag warning mt-2 text-decoration-none"
+         title="Há planilhas na pasta com os mesmos fretes; os totais estão sendo somados em dobro">
+        <i class="bi bi-exclamation-triangle"></i>{{ dataset.duplicated_freights | number }} fretes repetidos
+      </a>
+      {% endif %}
+    {% endif %}
+    <a href="{{ url_for('pages.reload') }}" class="source-link" title="Forçar nova leitura da planilha">
+      <i class="bi bi-arrow-clockwise"></i> Recarregar
+    </a>
+  </div>
+</aside>
+
+<main class="content">
+  {% block content %}{% endblock %}
+</main>
+
+<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

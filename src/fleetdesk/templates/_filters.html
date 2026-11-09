@@ -1,0 +1,18 @@
+{#- Filter bar. Expects `fields`: a list of (param, label, options, selected, all_label). -#}
+<form method="get" class="panel filter-bar">
+  {% for param, label, options, selected, all_label in fields %}
+  <div>
+    <label for="filter-{{ param }}">{{ label }}</label>
+    <select id="filter-{{ param }}" name="{{ param }}" onchange="this.form.submit()"
+            class="form-select form-select-sm {{ 'is-active' if selected }}">
+      <option value="">{{ all_label }}</option>
+      {% for option in options %}
+      <option value="{{ option }}" {{ 'selected' if selected == option }}>{{ option }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endfor %}
+  {% if fields | selectattr(3) | list %}
+  <a href="{{ url_for(request.endpoint) }}" class="btn-ghost clear-filters"><i class="bi bi-x-lg"></i> Limpar filtros</a>
+  {% endif %}
+</form>

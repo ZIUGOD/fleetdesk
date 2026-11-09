@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fleetdesk"
+version = "0.1.0"
+description = "Local-first operations dashboard for small trucking companies, fed by the Excel workbooks they already use."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "ZIUGOD" }]
+requires-python = ">=3.11"
+dependencies = [
+    "Flask>=3.0",
+    "openpyxl>=3.1",
+    "waitress>=3.0",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Framework :: Flask",
+    "Operating System :: Microsoft :: Windows",
+    "Natural Language :: Portuguese (Brazilian)",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "mypy>=1.10", "ruff>=0.5", "types-openpyxl", "types-waitress"]
+
+[project.scripts]
+fleetdesk = "fleetdesk.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+fleetdesk = ["templates/*.html", "static/css/*", "static/js/*", "static/img/*", "static/vendor/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+filterwarnings = ["ignore:Data Validation extension is not supported:UserWarning"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = "src"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

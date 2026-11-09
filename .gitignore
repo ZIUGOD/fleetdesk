@@ -1,0 +1,22 @@
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+build/
+dist/
+
+# Real company data must never be committed. Demo data is generated on demand
+# with `python -m fleetdesk.sample_data`.
+*.xlsx
+*.xlsm
+*.xls
+~$*
+sample-data/
+
+# Local tooling
+.claude/
+.vscode/
+*.tmp
