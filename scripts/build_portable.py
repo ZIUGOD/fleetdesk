@@ -53,6 +53,9 @@ start "" "%FD_PYW%" -m fleetdesk
 README = """FLEETDESK — COMO USAR
 =====================
 
+Página de download: https://ziugod.github.io/fleetdesk/
+Guia completo:      https://github.com/ZIUGOD/fleetdesk/blob/main/docs/guia-do-usuario.md
+
 INSTALAR (uma vez só)
 1. Clique com o botão direito no arquivo .zip e escolha "Extrair tudo...".
    Escolha uma pasta fixa, por exemplo "Documentos". Não abra pelo .zip.
@@ -68,8 +71,9 @@ USAR NO DIA A DIA
 
 ATUALIZAR PARA UMA VERSÃO NOVA
 1. Configurações > Encerrar FleetDesk.
-2. Apague a pasta antiga e extraia a nova no mesmo lugar.
-3. Dê dois cliques em "Iniciar FleetDesk". Suas configurações são mantidas.
+2. Baixe a versão nova na página de download (endereço no topo deste arquivo).
+3. Apague a pasta antiga e extraia a nova no mesmo lugar.
+4. Dê dois cliques em "Iniciar FleetDesk". Suas configurações são mantidas.
 
 PRIVACIDADE
 O FleetDesk roda só neste computador e não envia dados para a internet.
@@ -107,6 +111,7 @@ def main() -> None:
     _install_packages(runtime / "Lib" / "site-packages")
     _enable_lib_paths(runtime / f"{tag}._pth")
     _require_only_signed_binaries(runtime)
+    _smoke_test(runtime)
 
     (stage / "Iniciar FleetDesk.bat").write_text(LAUNCHER, encoding="ascii", newline="\r\n")
     (stage / "LEIA-ME.txt").write_text(README, encoding="utf-8-sig", newline="\r\n")
@@ -166,17 +171,31 @@ def _copy_tkinter(runtime: Path) -> None:
     """The embeddable Python has no tkinter; the native file pickers need it."""
     base = Path(sys.base_prefix)
     dlls = base / "DLLs"
-    # Tcl 9 keeps its script library inside tcl90.dll and links against zlib1.dll.
-    native = [dlls / "_tkinter.pyd", dlls / "zlib1.dll", *sorted(dlls.glob("tcl*.dll"))]
-    if len(native) < 4 or not all(p.exists() for p in native):
+    native = [dlls / "_tkinter.pyd", *sorted(dlls.glob("tcl*.dll")), *sorted(dlls.glob("tk*.dll"))]
+    # Tcl 9 (Python 3.14+) links against zlib1.dll and keeps its scripts inside tcl90.dll;
+    # Tcl 8.6 (Python 3.13 and older) needs its script library folder next to the runtime.
+    native += [p for p in [dlls / "zlib1.dll"] if p.exists()]
+    if not (dlls / "_tkinter.pyd").exists() or len(native) < 3:
         sys.exit(f"tkinter / Tcl-Tk not found under {base}. Install Python with Tcl/Tk.")
     for path in native:
         shutil.copy2(path, runtime / path.name)
+    if (base / "tcl").is_dir():
+        shutil.copytree(base / "tcl", runtime / "tcl")
     shutil.copytree(
         base / "Lib" / "tkinter",
         runtime / "Lib" / "tkinter",
         ignore=shutil.ignore_patterns("__pycache__", "test"),
     )
+
+
+def _smoke_test(runtime: Path) -> None:
+    """Start the bundled interpreter the way the shortcut will, before anything ships."""
+    check = (
+        "import tkinter, markupsafe, fleetdesk.app; tkinter.Tcl(); "
+        "assert markupsafe._escape_inner.__module__.endswith('_native'); "
+        "print('bundled FleetDesk', fleetdesk.__version__, 'imports OK')"
+    )
+    subprocess.run([str(runtime / "python.exe"), "-c", check], check=True)
 
 
 def _install_packages(target: Path) -> None:

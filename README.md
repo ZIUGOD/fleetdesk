@@ -1,7 +1,15 @@
 # FleetDesk
 
+[![CI](https://github.com/ZIUGOD/fleetdesk/actions/workflows/ci.yml/badge.svg)](https://github.com/ZIUGOD/fleetdesk/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/ZIUGOD/fleetdesk?label=download)](https://ziugod.github.io/fleetdesk/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 A local-first operations dashboard for small trucking companies, built on top of the Excel
 workbooks they already fill in every day.
+
+> **Usuário do FleetDesk?** Baixe em **<https://ziugod.github.io/fleetdesk/>** e veja o
+> **[Guia do usuário](docs/guia-do-usuario.md)**: instalação, primeiro uso, Google Drive,
+> atualização e problemas comuns, em português.
 
 ![FleetDesk dashboard (dark theme, fictitious sample data)](docs/screenshots/dashboard-dark.png)
 
@@ -89,6 +97,26 @@ No Python, installer, admin rights or internet connection is needed. The zip shi
 
 `scripts/FleetDesk.bat` is the developer-machine alternative: it installs into a local
 `.venv` and needs Python already installed.
+
+### Releases and the download page
+
+Pushing a version tag publishes a release, and nothing is built by hand:
+
+```powershell
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+[`release.yml`](.github/workflows/release.yml) runs the tests on Windows, checks that the tag
+matches `pyproject.toml`, builds the portable zip and attaches it to a GitHub Release as
+`FleetDesk-windows.zip` together with its SHA-256. The asset name never changes, so
+`releases/latest/download/FleetDesk-windows.zip` always points to the newest build.
+
+The download page for end users (Portuguese) lives in [`site/`](site/) and is published to
+GitHub Pages by [`pages.yml`](.github/workflows/pages.yml) at
+<https://ziugod.github.io/fleetdesk/>. It reads the latest release from the GitHub API to
+show its version, date and size. Pages has to be enabled once, in the repository's
+*Settings → Pages → Source: GitHub Actions*.
 
 ## Workbook format
 
@@ -207,8 +235,27 @@ FleetDesk never uploads anything. Workbooks are read in place, settings live in 
 profile, and `.gitignore` excludes every spreadsheet format so real data cannot be committed
 by accident. All screenshots in this repository use generated, fictitious data.
 
+## Project status
+
+FleetDesk is in use as a **read-and-check tool**: dashboard, freights, fuel, payroll closing,
+payroll adjustments and the audit all work on real workbooks. Known limits of the current
+version, also listed for users in the [user guide](docs/guia-do-usuario.md#7-o-que-o-fleetdesk-ainda-não-faz):
+
+- **Read-only.** Data entry stays in Excel; FleetDesk never writes to the workbooks.
+- **Costs come from the workbook.** When the fuel and toll tabs are empty, the operating
+  result is overstated; the audit warns about it.
+- **No toll-invoice import yet.** Monthly invoices from the toll-tag provider (e.g. Sem Parar)
+  must be typed into the toll tab for now.
+- **One workbook layout.** Workbooks in the older one-tab-per-driver layout are listed as
+  ignored.
+- **Inferred periods.** The payroll and per-truck tabs have no period column, so they take
+  the period of most freights in the same workbook.
+- **Manual updates.** Users download the new zip and replace the folder; settings persist.
+- **The AI summary is optional** and needs Ollama plus a ~2 GB model on the user's machine.
+
 ## Roadmap
 
+- Toll-tag invoice import, allocated to each pay period by passage date
 - Native desktop window (pywebview) instead of a browser tab
 - Per-truck results page (`RESULTADO POR PLACA` is already parsed)
 - Support for the legacy one-tab-per-driver workbook
