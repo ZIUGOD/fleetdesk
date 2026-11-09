@@ -30,15 +30,18 @@ jobs:
     runs-on: windows-latest
     env:
       PYTHON_VERSION: "3.14.7"
+      # From https://www.python.org/ftp/python/index-windows.json (pythoncore-3.14-64).
+      PYTHON_SHA256: ac1a727a71738e11de80b76e975f9b8a258aea6412bfc31696b929d59c6aafd0
     steps:
       - uses: actions/checkout@v5
-      # The runner's Python ships unsigned Tcl/Tk DLLs, which Smart App Control blocks; the
-      # bundle takes them from the official, PSF-signed python.org build instead.
-      - name: Install the official python.org build
+      # Both the runner's Python and the classic .exe installer ship unsigned Tcl/Tk DLLs,
+      # which Smart App Control blocks. The Python Install Manager package signs them all.
+      - name: Fetch the signed python.org package
         run: |
-          $installer = "$env:RUNNER_TEMP\python-$env:PYTHON_VERSION.exe"
-          Invoke-WebRequest "https://www.python.org/ftp/python/$env:PYTHON_VERSION/python-$env:PYTHON_VERSION-amd64.exe" -OutFile $installer
-          Start-Process $installer -Wait -ArgumentList "/quiet", "InstallAllUsers=0", "Include_launcher=0", "Include_test=0", "Shortcuts=0", "AssociateFiles=0", "PrependPath=0", "TargetDir=$env:RUNNER_TEMP\python"
+          $zip = "$env:RUNNER_TEMP\python.zip"
+          Invoke-WebRequest "https://www.python.org/ftp/python/$env:PYTHON_VERSION/python-$env:PYTHON_VERSION-amd64.zip" -OutFile $zip
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $env:PYTHON_SHA256) { throw "Python package checksum mismatch" }
+          Expand-Archive $zip "$env:RUNNER_TEMP\python"
           & "$env:RUNNER_TEMP\python\python.exe" --version
       - run: '& "$env:RUNNER_TEMP\python\python.exe" scripts/build_portable.py'
       - uses: actions/upload-artifact@v4
