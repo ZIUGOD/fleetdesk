@@ -36,8 +36,10 @@ function applyChartTheme() {
   Chart.defaults.borderColor = cssVar('grid');
   Chart.defaults.font.family = cssVar('font-ui');
   Chart.defaults.font.size = 11;
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  Chart.defaults.animation = reduceMotion ? false : { duration: 300 };
+  // Charts are drawn at once, with no intro animation. Animations advance only while the
+  // browser paints frames, so a page opened in a background tab or behind another window
+  // showed empty or half-drawn charts (donuts especially, which "spin in" from nothing).
+  Chart.defaults.animation = false;
   Chart.defaults.plugins.legend.display = false;
   Object.assign(Chart.defaults.plugins.tooltip, {
     backgroundColor: cssVar('surface'),
@@ -266,13 +268,21 @@ function shareTable(series, format, nameHeader, valueHeader) {
   };
 }
 
-// Bars, donut and table for a "total per category" series.
+// A donut says something only when a few slices stand out. With many similar categories
+// (e.g. 28 drivers of similar output) it would be mostly a grey "Outros" ring.
+function donutFits(series, keep = 5, minShare = 0.6) {
+  const sum = total(series.values);
+  if (!sum || series.values.some(v => v < 0)) return false;
+  const named = series.labels.map((label, i) => [label, series.values[i]]).filter(([label]) => !isOthers(label));
+  return total(named.slice(0, keep).map(([, v]) => v)) / sum >= minShare;
+}
+
+// Bars, donut (when it fits the data) and table for a "total per category" series.
 function categoryPanel(id, series, format, nameHeader, valueHeader) {
-  chartPanel(id, [
-    { key: 'bar', label: 'Barras', chart: barsView(series, format) },
-    { key: 'donut', label: 'Rosca', chart: donutView(series, format) },
-    { key: 'table', label: 'Tabela', table: shareTable(series, format, nameHeader, valueHeader) },
-  ]);
+  const views = [{ key: 'bar', label: 'Barras', chart: barsView(series, format) }];
+  if (donutFits(series)) views.push({ key: 'donut', label: 'Rosca', chart: donutView(series, format) });
+  views.push({ key: 'table', label: 'Tabela', table: shareTable(series, format, nameHeader, valueHeader) });
+  chartPanel(id, views);
 }
 
 /* ── Time series ──────────────────────────────────────────────────────────── */
