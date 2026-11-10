@@ -6,6 +6,7 @@ import logging
 import os
 import threading
 from dataclasses import asdict, dataclass
+from typing import Any
 
 from flask import (
     Blueprint,
@@ -25,7 +26,7 @@ from fleetdesk.assistant import AssistantError
 from fleetdesk.data import analytics
 from fleetdesk.data.audit import AuditReport, run_audit
 from fleetdesk.data.models import Dataset, Freight, empty_dataset
-from fleetdesk.data.repository import WORKBOOK_EXTENSIONS, list_workbooks
+from fleetdesk.data.repository import WORKBOOK_EXTENSIONS, list_workbooks, period_sort_key
 from fleetdesk.dialogs import DialogBusyError, PickKind
 from fleetdesk.settings import THEMES
 from fleetdesk.updates import DOWNLOAD_PAGE, UpdateError
@@ -113,26 +114,32 @@ def dashboard() -> str | Response:
 
     filters = FreightFilters.from_request()
     freights = filters.apply(dataset.freights)
-    charts: dict[str, analytics.Series | analytics.DailySeries] = {
+    fuel = analytics.in_period(dataset.fuel, filters.period)
+    tolls = analytics.in_period(dataset.tolls, filters.period)
+    charts: dict[str, Any] = {
         "daily": analytics.daily_series(freights),
+        "weekday": analytics.weekday_series(freights),
+        "by_period": analytics.period_series(freights, fuel, tolls, period_sort_key),
         "by_driver": analytics.totals_by(freights, "driver", "net_revenue"),
         "by_customer": analytics.totals_by(
             freights, "customer", "gross_revenue", limit=15, fold_rest=True
         ),
+        "by_plate": analytics.totals_by(freights, "plate", "net_revenue", limit=15, fold_rest=True),
         "by_material": analytics.totals_by(
             freights, "material", "weight_t", limit=12, fold_rest=True
         ),
         "by_origin": analytics.totals_by(freights, "origin", "weight_t", limit=12, fold_rest=True),
+        "by_destination": analytics.totals_by(
+            freights, "destination", "weight_t", limit=12, fold_rest=True
+        ),
     }
     kpis = analytics.compute_kpis(
-        freights,
-        analytics.in_period(dataset.payroll, filters.period),
-        analytics.in_period(dataset.fuel, filters.period),
-        analytics.in_period(dataset.tolls, filters.period),
+        freights, analytics.in_period(dataset.payroll, filters.period), fuel, tolls
     )
     return render_template(
         "dashboard.html",
         kpis=kpis,
+        kpis_json=asdict(kpis),
         charts={name: asdict(series) for name, series in charts.items()},
         filters=filters,
         **_filter_options(dataset),

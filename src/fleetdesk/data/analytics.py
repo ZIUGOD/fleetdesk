@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, Protocol, TypeVar
@@ -127,6 +127,61 @@ def daily_series(freights: Iterable[Freight]) -> DailySeries:
         gross_revenue=[round(v[0], 2) for _, v in ordered],
         net_revenue=[round(v[1], 2) for _, v in ordered],
         trips=[int(v[2]) for _, v in ordered],
+    )
+
+
+WEEKDAYS = ("Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom")
+
+
+@dataclass(frozen=True, slots=True)
+class WeekdaySeries:
+    labels: list[str]
+    trips: list[int]
+    gross_revenue: list[float]
+
+
+def weekday_series(freights: Iterable[Freight]) -> WeekdaySeries:
+    """Trips and gross revenue per day of the week, Monday first."""
+    trips = [0] * 7
+    gross = [0.0] * 7
+    for f in freights:
+        trips[f.date.weekday()] += 1
+        gross[f.date.weekday()] += f.gross_revenue
+    return WeekdaySeries(list(WEEKDAYS), trips, [round(v, 2) for v in gross])
+
+
+@dataclass(frozen=True, slots=True)
+class PeriodSeries:
+    labels: list[str]
+    gross_revenue: list[float]
+    net_revenue: list[float]
+    operating_result: list[float]
+
+
+def period_series(
+    freights: Iterable[Freight],
+    fuel: Iterable[FuelEntry],
+    tolls: Iterable[TollEntry],
+    order: Callable[[str], Any],
+) -> PeriodSeries:
+    """Gross, net and operating result per payroll period, oldest first."""
+    gross: defaultdict[str, float] = defaultdict(float)
+    net: defaultdict[str, float] = defaultdict(float)
+    result: defaultdict[str, float] = defaultdict(float)
+    for f in freights:
+        gross[f.period] += f.gross_revenue
+        net[f.period] += f.net_revenue
+        result[f.period] += f.net_revenue - f.commission
+    for e in fuel:
+        result[e.period] -= e.total
+    for t in tolls:
+        result[t.period] -= t.amount
+    periods = sorted((p for p in gross if p), key=order)
+    return PeriodSeries(
+        labels=periods,
+        gross_revenue=[round(gross[p], 2) for p in periods],
+        net_revenue=[round(net[p], 2) for p in periods],
+        operating_result=[round(result[p], 2) for p in periods],
     )
 
 

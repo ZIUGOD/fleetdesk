@@ -7,6 +7,7 @@ import pytest
 
 from fleetdesk.data import analytics
 from fleetdesk.data.models import Freight, FuelEntry, PayrollAdjustment, PayrollSummary, TollEntry
+from fleetdesk.data.repository import period_sort_key
 
 
 def freight(**overrides: Any) -> Freight:
@@ -87,6 +88,34 @@ def test_daily_series_is_chronological_across_months() -> None:
 
     assert series.labels == ["28/08", "01/09"]
     assert series.trips == [1, 2]
+
+
+def test_weekday_series_starts_on_monday() -> None:
+    rows = [
+        freight(date=date(2026, 9, 7)),  # Monday
+        freight(date=date(2026, 9, 13), gross_revenue=40),  # Sunday
+        freight(date=date(2026, 9, 14)),  # Monday
+    ]
+
+    series = analytics.weekday_series(rows)
+
+    assert series.labels[0] == "Seg" and series.labels[-1] == "Dom"
+    assert series.trips == [2, 0, 0, 0, 0, 0, 1]
+    assert series.gross_revenue[0] == 200 and series.gross_revenue[6] == 40
+
+
+def test_period_series_is_chronological_with_costs_per_period() -> None:
+    fuel = FuelEntry(
+        date(2026, 9, 1), "AAA1A11", "ANA", "", "", "", 0, 10, 12.0, "", "", "SET/2026", 0, 0, 0, ""
+    )
+    toll = TollEntry(date(2026, 8, 1), "AAA1A11", "ANA", "", 6, 4.0, "", "", "", "", "AGO/2026", "")
+    rows = [freight(period="SET/2026"), freight(period="AGO/2026"), freight(period="SET/2026")]
+
+    series = analytics.period_series(rows, [fuel], [toll], period_sort_key)
+
+    assert series.labels == ["AGO/2026", "SET/2026"]
+    assert series.gross_revenue == [100, 200]
+    assert series.operating_result == [80 - 8 - 4, 160 - 16 - 12]
 
 
 def test_driver_statements_put_revenue_next_to_adjustments() -> None:

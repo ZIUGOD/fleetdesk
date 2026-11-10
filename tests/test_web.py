@@ -67,6 +67,25 @@ def test_an_unexpected_error_keeps_the_menu(
     assert 'href="/fuel"' in html  # the sidebar is still there
 
 
+def test_dashboard_charts_can_switch_views(configured_client: FlaskClient) -> None:
+    html = configured_client.get("/dashboard").get_data(as_text=True)
+    for panel in ("revenue", "weekday", "daily", "driver", "customer", "plate", "destination"):
+        assert f'id="panel-{panel}"' in html
+    assert html.count('class="view-switch"') == 9  # one sample month: no period comparison
+
+
+def test_period_comparison_needs_two_periods(
+    client: FlaskClient, tmp_path: Path, make_workbook: Callable[..., Path]
+) -> None:
+    make_workbook("months/ago.xlsx", trips=10, month=8)
+    make_workbook("months/set.xlsx", trips=10, month=9)
+    client.post("/settings", data={"source": str(tmp_path / "months")})
+
+    assert 'id="panel-period"' in client.get("/dashboard").get_data(as_text=True)
+    one_period = client.get("/dashboard?period=SET/2026").get_data(as_text=True)
+    assert 'id="panel-period"' not in one_period
+
+
 def test_kpis_explain_how_they_are_calculated(configured_client: FlaskClient) -> None:
     html = configured_client.get("/dashboard").get_data(as_text=True)
     assert html.count('class="info-tip"') == 8

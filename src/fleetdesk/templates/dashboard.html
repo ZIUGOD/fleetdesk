@@ -21,13 +21,18 @@
 </div>
 {% endmacro %}
 
-{% macro chart_panel(title, subtitle, canvas_id) %}
-<div class="panel panel-body h-100">
-  <div class="panel-header"><div>
-    <h2 class="panel-title">{{ title }}</h2>
-    <div class="panel-subtitle">{{ subtitle }}</div>
-  </div></div>
-  <div class="chart-box"><canvas id="{{ canvas_id }}"></canvas></div>
+{#- A chart with a view switcher; charts.js fills the switcher and draws the chosen view. -#}
+{% macro chart_panel(title, subtitle, panel_id, height=None) %}
+<div class="panel panel-body h-100" id="{{ panel_id }}">
+  <div class="panel-header">
+    <div>
+      <h2 class="panel-title">{{ title }}</h2>
+      <div class="panel-subtitle">{{ subtitle }}</div>
+    </div>
+    <div class="view-switch" role="group" aria-label="Forma de ver: {{ title }}"></div>
+  </div>
+  <div class="chart-box" {% if height %}style="height:{{ height }}px"{% endif %}><canvas role="img" aria-label="{{ title }}"></canvas></div>
+  <div class="chart-table" hidden></div>
 </div>
 {% endmacro %}
 
@@ -117,27 +122,32 @@
     'Soma de VALOR dos pedágios') }}</div>
 </div>
 
-<div class="panel panel-body mb-3">
-  <div class="panel-header">
-    <div>
-      <h2 class="panel-title">Evolução diária</h2>
-      <div class="panel-subtitle">Faturamento bruto e produção líquida por dia</div>
-    </div>
-    <div class="chart-legend">
-      <span><i class="swatch-1"></i>Faturamento bruto</span>
-      <span><i class="swatch-2"></i>Produção líquida</span>
-    </div>
-  </div>
-  <div class="chart-box" style="height:260px"><canvas id="chart-daily"></canvas></div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-7">{{ chart_panel('Para onde vai o faturamento', 'Do faturamento bruto ao resultado operacional, etapa por etapa', 'panel-revenue', 300) }}</div>
+  <div class="col-lg-5">{{ chart_panel('Viagens por dia da semana', 'Em quais dias a frota mais roda', 'panel-weekday', 300) }}</div>
 </div>
 
+<div class="mb-3">
+  {{ chart_panel('Evolução diária', 'Faturamento bruto (linha cheia) e produção líquida (tracejada) por dia', 'panel-daily', 280) }}
+</div>
+
+{% if charts.by_period.labels | length > 1 %}
+<div class="mb-3">
+  {{ chart_panel('Comparação entre competências', 'Faturamento bruto, produção líquida e resultado operacional de cada competência', 'panel-period', 280) }}
+</div>
+{% endif %}
+
 <div class="row g-3 mb-3">
-  <div class="col-lg-6">{{ chart_panel('Produção líquida por motorista', 'Todos os motoristas, do maior para o menor', 'chart-driver') }}</div>
-  <div class="col-lg-6">{{ chart_panel('Faturamento bruto por cliente', 'Os 15 maiores; o restante somado em "Outros"', 'chart-customer') }}</div>
+  <div class="col-lg-6">{{ chart_panel('Produção líquida por motorista', 'Todos os motoristas, do maior para o menor', 'panel-driver') }}</div>
+  <div class="col-lg-6">{{ chart_panel('Faturamento bruto por cliente', 'Os 15 maiores; o restante somado em "Outros"', 'panel-customer') }}</div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-6">{{ chart_panel('Produção líquida por caminhão', 'Por placa; as 15 maiores', 'panel-plate') }}</div>
+  <div class="col-lg-6">{{ chart_panel('Toneladas por material', 'Os 12 maiores; o restante somado em "Outros"', 'panel-material') }}</div>
 </div>
 <div class="row g-3">
-  <div class="col-lg-6">{{ chart_panel('Toneladas por material', 'Os 12 maiores; o restante somado em "Outros"', 'chart-material') }}</div>
-  <div class="col-lg-6">{{ chart_panel('Toneladas por origem', 'Os 12 maiores; o restante somado em "Outros"', 'chart-origin') }}</div>
+  <div class="col-lg-6">{{ chart_panel('Toneladas por origem', 'Onde a carga foi carregada', 'panel-origin') }}</div>
+  <div class="col-lg-6">{{ chart_panel('Toneladas por destino', 'Onde a carga foi descarregada', 'panel-destination') }}</div>
 </div>
 {% endif %}
 {% endblock %}
@@ -146,16 +156,17 @@
 {% if kpis.trips %}
 <script>
 const charts = {{ charts | tojson }};
-registerCharts(() => [
-  lineChart('chart-daily', charts.daily.labels, [
-    { label: 'Faturamento bruto', data: charts.daily.gross_revenue },
-    { label: 'Produção líquida', data: charts.daily.net_revenue },
-  ]),
-  horizontalBarChart('chart-driver', charts.by_driver, 'brl'),
-  horizontalBarChart('chart-customer', charts.by_customer, 'brl'),
-  horizontalBarChart('chart-material', charts.by_material, 'tonnes'),
-  horizontalBarChart('chart-origin', charts.by_origin, 'tonnes'),
-]);
+const kpis = {{ kpis_json | tojson }};
+revenuePanel('panel-revenue', kpis);
+weekdayPanel('panel-weekday', charts.weekday);
+dailyPanel('panel-daily', charts.daily);
+if (charts.by_period.labels.length > 1) periodPanel('panel-period', charts.by_period);
+categoryPanel('panel-driver', charts.by_driver, 'brl', 'Motorista', 'Produção líquida');
+categoryPanel('panel-customer', charts.by_customer, 'brl', 'Cliente', 'Faturamento bruto');
+categoryPanel('panel-plate', charts.by_plate, 'brl', 'Placa', 'Produção líquida');
+categoryPanel('panel-material', charts.by_material, 'tonnes', 'Material', 'Toneladas');
+categoryPanel('panel-origin', charts.by_origin, 'tonnes', 'Origem', 'Toneladas');
+categoryPanel('panel-destination', charts.by_destination, 'tonnes', 'Destino', 'Toneladas');
 </script>
 {% endif %}
 {% endblock %}

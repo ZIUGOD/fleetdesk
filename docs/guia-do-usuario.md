@@ -67,6 +67,10 @@ Pronto: clique em **Dashboard**.
 
 - **O FleetDesk relê as planilhas sozinho** sempre que alguém as salva. Não precisa reiniciar.
   Use **Recarregar** no menu se quiser forçar uma nova leitura.
+- **Gráficos:** no canto de cada gráfico do Dashboard dá para escolher a forma de ver: barras,
+  rosca (pizza), linhas, área, acumulado ou tabela. O FleetDesk lembra a escolha de cada gráfico.
+  O gráfico **Para onde vai o faturamento** mostra, em cascata, quanto sai do faturamento bruto em
+  retenções, comissões, combustível e pedágio até chegar ao resultado.
 - **O que é cada número:** passe o mouse (ou clique) no **ⓘ** ao lado do nome de cada indicador
   para ver o que ele significa e como é calculado.
 - **Se as planilhas não puderem ser lidas** (pasta movida, Google Drive desconectado, arquivo

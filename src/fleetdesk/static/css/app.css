@@ -29,6 +29,13 @@
   --axis: #c3c2b7;
   --series-1: #2a78d6;
   --series-2: #eb6834;
+  /* Categorical palette for donut slices; "Outros" uses --axis. */
+  --cat-1: #2a78d6;
+  --cat-2: #eb6834;
+  --cat-3: #1f9d74;
+  --cat-4: #8a5cd1;
+  --cat-5: #d4a20f;
+  --cat-6: #d24f8a;
 
   --shadow: 0 1px 2px rgba(11, 11, 11, .04), 0 1px 1px rgba(11, 11, 11, .02);
   --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -63,6 +70,12 @@
   --axis: #3a3a37;
   --series-1: #3987e5;
   --series-2: #d95926;
+  --cat-1: #3987e5;
+  --cat-2: #e26a37;
+  --cat-3: #2fb487;
+  --cat-4: #a07ee6;
+  --cat-5: #e2b336;
+  --cat-6: #e0679c;
 
   --shadow: none;
 }
@@ -146,7 +159,7 @@ a { color: inherit; }
 
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); }
 .panel-body { padding: 1.1rem 1.25rem; }
-.panel-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: .9rem; }
+.panel-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: .6rem 1rem; margin-bottom: .9rem; }
 .panel-title { font-size: .9rem; font-weight: 600; margin: 0; }
 .panel-subtitle { font-size: .76rem; color: var(--muted); margin-top: .1rem; }
 
@@ -237,6 +250,29 @@ a { color: inherit; }
 .chart-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .swatch-1 { background: var(--series-1); }
 .swatch-2 { background: var(--series-2); }
+
+/* Segmented control that switches a chart panel between views (bars, donut, table...). */
+.view-switch {
+  display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; border-radius: 9px;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.view-switch button {
+  display: inline-flex; align-items: center; gap: .3rem; min-height: 30px; padding: .2rem .55rem;
+  border: 0; border-radius: 7px; background: transparent; color: var(--text-2);
+  font-size: .74rem; font-weight: 600; cursor: pointer; transition: background-color .15s, color .15s;
+}
+.view-switch button:hover { color: var(--text); background: var(--surface-hover); }
+.view-switch button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow), 0 0 0 1px var(--border-strong); }
+.view-switch button[aria-pressed="true"] i { color: var(--accent); }
+.view-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.chart-table .table-scroll { max-height: 340px; }
+@media (max-width: 575.98px) {
+  .view-switch button span { display: none; }  /* icons only; the title still names the view */
+  .view-switch button { min-width: 36px; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .view-switch button { transition: none; }
+}
 
 /* ── Tables ──────────────────────────────────────────────────────────────── */
 .table-scroll { overflow: auto; max-height: calc(100vh - 260px); border-radius: 12px; }
