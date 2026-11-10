@@ -11,6 +11,7 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    timeout-minutes: 30
     env:
       # The portable zip bundles the embeddable distribution of this exact version.
       PYTHON_VERSION: "3.14.7"

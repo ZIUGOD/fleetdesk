@@ -18,8 +18,12 @@ function Test-Running {
     try { Invoke-RestMethod $version -TimeoutSec 2 | Out-Null; return $true } catch { return $false }
 }
 
-$setup = Start-Process dist\FleetDesk-Setup.exe -PassThru -Wait `
+# Not Start-Process -Wait: it also waits for every process the installer starts, and the
+# installer leaves FleetDesk running, so it would never return.
+$setup = Start-Process dist\FleetDesk-Setup.exe -PassThru `
     -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/TASKS=desktopicon"
+$null = $setup.Handle  # keeps ExitCode readable after the process ends (PowerShell 5)
+if (-not $setup.WaitForExit(300000)) { throw "Installer did not finish within 5 minutes" }
 if ($setup.ExitCode -ne 0) { throw "Installer exited with code $($setup.ExitCode)" }
 
 foreach ($path in "$app\runtime\pythonw.exe", "$app\unins000.exe", "$app\fleetdesk.ico") {
