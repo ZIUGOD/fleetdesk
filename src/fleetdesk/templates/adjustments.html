@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% from "_macros.html" import money_value %}
+{% from "_macros.html" import money_value, info %}
 {% block title %}Ajustes de folha{% endblock %}
 
 {% block content %}
@@ -22,21 +22,21 @@
 <div class="row g-3 mb-3">
   <div class="col-6 col-xl">
     <div class="panel kpi compact">
-      <div class="kpi-label"><i class="bi bi-cash-stack"></i>Faturamento bruto</div>
+      <div class="kpi-label"><i class="bi bi-cash-stack"></i>Faturamento bruto{{ info('Quanto as viagens dos motoristas filtrados faturaram, somando a coluna FATURAMENTO BRUTO (R$) da aba LANÇAMENTOS. Abaixo, a produção líquida, depois de retenções e impostos.', 'Soma de FATURAMENTO BRUTO das viagens') }}</div>
       <div class="kpi-value" title="{{ total_gross | brl }}">{{ money_value(total_gross) }}</div>
       <div class="kpi-note">Produção líquida {{ total_net | brl(0) }}</div>
     </div>
   </div>
   <div class="col-6 col-xl">
     <div class="panel kpi compact">
-      <div class="kpi-label"><i class="bi bi-percent"></i>Comissão</div>
+      <div class="kpi-label"><i class="bi bi-percent"></i>Comissão{{ info('Comissão das viagens: a soma da coluna COMISSÃO (R$) da aba LANÇAMENTOS para os motoristas filtrados.', 'Soma de COMISSÃO (R$) das viagens') }}</div>
       <div class="kpi-value" title="{{ total_commission | brl }}">{{ money_value(total_commission) }}</div>
     </div>
   </div>
   {% if show_costs %}
   <div class="col-6 col-xl">
     <div class="panel kpi compact">
-      <div class="kpi-label"><i class="bi bi-fuel-pump"></i>Custos de viagem</div>
+      <div class="kpi-label"><i class="bi bi-fuel-pump"></i>Custos de viagem{{ info('Combustível e pedágio lançados no nome dos motoristas filtrados, nas abas COMBUSTÍVEL e PEDÁGIO. Serve para comparar com o que cada um faturou; não é descontado da folha.', 'Combustível + pedágio do motorista') }}</div>
       <div class="kpi-value" title="{{ total_costs | brl }}">{{ money_value(total_costs) }}</div>
       <div class="kpi-note">Combustível e pedágio</div>
     </div>
@@ -44,13 +44,13 @@
   {% endif %}
   <div class="col-6 col-xl">
     <div class="panel kpi compact">
-      <div class="kpi-label"><i class="bi bi-dash-circle text-negative"></i>Descontos</div>
+      <div class="kpi-label"><i class="bi bi-dash-circle text-negative"></i>Descontos{{ info('Ajustes que diminuem o pagamento (INSS, adiantamento, empréstimo...): a soma dos valores negativos da aba AJUSTES FOLHA.', 'Soma dos ajustes com valor negativo') }}</div>
       <div class="kpi-value" title="{{ total_deductions | brl }}">{{ money_value(total_deductions) }}</div>
     </div>
   </div>
   <div class="col-6 col-xl">
     <div class="panel kpi compact highlight">
-      <div class="kpi-label"><i class="bi bi-plus-circle text-positive"></i>Acréscimos</div>
+      <div class="kpi-label"><i class="bi bi-plus-circle text-positive"></i>Acréscimos{{ info('Ajustes que aumentam o pagamento (salário, gratificação, valor fixo...): a soma dos valores positivos da aba AJUSTES FOLHA. O saldo é acréscimos mais descontos.', 'Saldo = acréscimos + descontos') }}</div>
       <div class="kpi-value" title="{{ total_additions | brl }}">{{ money_value(total_additions) }}</div>
       <div class="kpi-note">Saldo dos ajustes {{ (total_deductions + total_additions) | brl(0) }}</div>
     </div>

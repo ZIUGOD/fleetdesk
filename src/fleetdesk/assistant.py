@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -57,6 +59,11 @@ class AssistantError(RuntimeError):
     """The local model could not produce a summary (message is pt-BR, shown to the user)."""
 
 
+#: What the setup guide shows: install Ollama, open it, or download a model.
+NOT_INSTALLED, NOT_RUNNING, NO_MODEL, READY = "not_installed", "not_running", "no_model", "ready"
+RECOMMENDED_MODEL = PREFERRED_MODELS[0]
+
+
 @dataclass(frozen=True, slots=True)
 class AssistantStatus:
     available: bool
@@ -65,6 +72,16 @@ class AssistantStatus:
     models: list[str] = field(default_factory=list)
     #: Why it is unavailable, in pt-BR.
     message: str = ""
+    #: NOT_INSTALLED, NOT_RUNNING, NO_MODEL or READY.
+    state: str = READY
+
+
+def ollama_installed() -> bool:
+    """Whether Ollama is on this PC (its Windows installer puts it in the user's profile)."""
+    if shutil.which("ollama"):
+        return True
+    local = os.environ.get("LOCALAPPDATA", "")
+    return bool(local) and os.path.isfile(os.path.join(local, "Programs", "Ollama", "ollama.exe"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,24 +92,35 @@ class Summary:
 
 
 class LocalAssistant:
-    def __init__(self, base_url: str = OLLAMA_URL) -> None:
+    def __init__(
+        self, base_url: str = OLLAMA_URL, is_installed: Callable[[], bool] = ollama_installed
+    ) -> None:
         self.base_url = base_url.rstrip("/")
+        self._is_installed = is_installed
 
     def status(self, preferred_model: str = "") -> AssistantStatus:
         try:
             tags = self._request("GET", "/api/tags", timeout=2)
         except AssistantError:
+            if not self._is_installed():
+                return AssistantStatus(
+                    available=False,
+                    state=NOT_INSTALLED,
+                    message="O Ollama, o programa gratuito que roda a IA, não está instalado "
+                    "neste computador.",
+                )
             return AssistantStatus(
                 available=False,
-                message="O Ollama não está aberto neste computador. Abra o aplicativo Ollama "
-                "(ou instale em ollama.com) para gerar o resumo com IA.",
+                state=NOT_RUNNING,
+                message="O Ollama está instalado, mas fechado. Abra o aplicativo Ollama para "
+                "gerar o resumo com IA.",
             )
         models = sorted(m["name"] for m in tags.get("models", []))
         if not models:
             return AssistantStatus(
                 available=False,
-                message="O Ollama está aberto, mas não tem nenhum modelo. Para baixar um, rode "
-                "no Prompt de Comando: ollama pull qwen2.5:3b",
+                state=NO_MODEL,
+                message="O Ollama está aberto, mas ainda não baixou o modelo de IA.",
             )
         if preferred_model in models:
             chosen = preferred_model

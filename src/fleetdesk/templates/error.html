@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block title %}Erro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Algo deu errado nesta tela</h1>
+    <div class="page-subtitle">As outras telas continuam funcionando: use o menu ao lado.</div>
+  </div>
+</div>
+
+<div class="panel empty-state">
+  <i class="bi bi-exclamation-octagon"></i>
+  <strong>O FleetDesk encontrou um erro inesperado ao abrir esta tela</strong>
+  Clique em <a href="{{ url_for('pages.reload') }}">Recarregar</a> e tente de novo. Se continuar, envie o arquivo
+  <code>%APPDATA%\FleetDesk\fleetdesk.log</code> para o suporte.
+</div>
+{% endblock %}

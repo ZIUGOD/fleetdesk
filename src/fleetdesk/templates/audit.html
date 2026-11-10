@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% from "_macros.html" import info %}
 {% block title %}Auditoria{% endblock %}
 
 {% set severity_style = {
@@ -21,15 +22,15 @@
 {% with fields = [('period', 'Competência', periods, selected_period, 'Todas')] %}{% include "_filters.html" %}{% endwith %}
 
 <div class="row g-3 mb-3">
-  {% for severity, label, note in [
-    ('error', 'Erros prováveis', 'Quase certamente errados'),
-    ('warning', 'Para conferir', 'Podem estar errados'),
-    ('info', 'Informativos', 'Fora do padrão, mas comuns'),
+  {% for severity, label, note, help in [
+    ('error', 'Erros prováveis', 'Quase certamente errados', 'Tipos de problema que quase certamente são erro de digitação ou de lançamento, como peso impossível ou desconto lançado como crédito. Corrija primeiro.'),
+    ('warning', 'Para conferir', 'Podem estar errados', 'Tipos de problema que podem ser erro ou não, como um valor por tonelada muito diferente do normal na mesma rota ou uma possível viagem repetida. Confira na planilha.'),
+    ('info', 'Informativos', 'Fora do padrão, mas comuns', 'Coisas fora do padrão que costumam estar certas, mas que vale saber, como o mesmo cliente escrito de dois jeitos.'),
   ] %}
   <div class="col-md-4">
     <div class="panel kpi compact">
       <div class="kpi-label">
-        <i class="bi {{ severity_style[severity][1] }} text-{{ 'negative' if severity == 'error' else ('subtle' if severity == 'info' else 'warning') }}"></i>{{ label }}
+        <i class="bi {{ severity_style[severity][1] }} text-{{ 'negative' if severity == 'error' else ('subtle' if severity == 'info' else 'warning') }}"></i>{{ label }}{{ info(help, 'Conta tipos de problema, não linhas: cada um lista abaixo as linhas para conferir') }}
       </div>
       <div class="kpi-value">{{ report.count(severity) }}</div>
       <div class="kpi-note">{{ note }}</div>
@@ -57,11 +58,24 @@
   <div class="ai-output" id="ai-output" hidden></div>
   <div class="panel-subtitle" id="ai-meta">Modelo: {{ assistant.model }} · costuma levar de 5 a 30 segundos.</div>
   {% else %}
-  <div class="alert-error" style="margin-bottom:0"><i class="bi bi-plug"></i><span>{{ assistant.message }}</span></div>
+  {% include "_ai_setup.html" %}
   {% endif %}
 </div>
 
-{% if not report.findings %}
+{% if audit_failed %}
+<div class="panel empty-state">
+  <i class="bi bi-exclamation-octagon"></i>
+  <strong>Não foi possível conferir as planilhas agora</strong>
+  Clique em <a href="{{ url_for('pages.reload') }}">Recarregar</a>. Se continuar, envie o arquivo
+  <code>%APPDATA%\FleetDesk\fleetdesk.log</code> para o suporte.
+</div>
+{% elif not report.records_checked %}
+<div class="panel empty-state">
+  <i class="bi bi-clipboard2"></i>
+  <strong>Nada para conferir ainda</strong>
+  Quando houver planilhas carregadas, a auditoria aparece aqui.
+</div>
+{% elif not report.findings %}
 <div class="panel empty-state">
   <i class="bi bi-patch-check"></i>
   <strong>Nenhum problema encontrado</strong>

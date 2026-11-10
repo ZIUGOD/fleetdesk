@@ -12,11 +12,65 @@ from tests.conftest import FakePicker, ShutdownSpy
 PAGES = ["/dashboard", "/freights", "/payroll", "/payroll/adjustments", "/fuel", "/settings"]
 
 
-def test_without_a_source_pages_redirect_to_settings(client: FlaskClient) -> None:
-    response = client.get("/dashboard")
-    assert response.status_code == 302
+TABS = ["/dashboard", "/audit", "/freights", "/payroll", "/payroll/adjustments", "/fuel"]
+
+
+def test_first_run_opens_settings(client: FlaskClient) -> None:
+    response = client.get("/")
     assert response.headers["Location"].endswith("/settings")
     assert "Para começar" in client.get("/settings").get_data(as_text=True)
+
+
+@pytest.mark.parametrize("url", TABS)
+def test_every_tab_opens_without_a_source(client: FlaskClient, url: str) -> None:
+    response = client.get(url)
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Sem dados para mostrar" in html
+    assert "Nenhuma planilha escolhida ainda." in html
+
+
+@pytest.mark.parametrize("url", TABS)
+def test_every_tab_opens_when_the_source_is_gone(
+    client: FlaskClient, settings_store: SettingsStore, tmp_path: Path, url: str
+) -> None:
+    settings_store.update(source=str(tmp_path / "moved.xlsx"))
+    response = client.get(url)
+    assert response.status_code == 200
+    assert "não foi encontrada" in response.get_data(as_text=True)
+
+
+@pytest.mark.parametrize("url", TABS)
+def test_every_tab_opens_when_reading_fails(
+    configured_client: FlaskClient, monkeypatch: pytest.MonkeyPatch, url: str
+) -> None:
+    def broken(*args: object) -> None:
+        raise ValueError("unexpected workbook layout")
+
+    monkeypatch.setattr("fleetdesk.data.repository.DataRepository.load", broken)
+    response = configured_client.get(url)
+    assert response.status_code == 200
+    assert "Não foi possível ler as planilhas" in response.get_data(as_text=True)
+
+
+def test_an_unexpected_error_keeps_the_menu(
+    configured_client: FlaskClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def broken(*args: object, **kwargs: object) -> None:
+        raise ZeroDivisionError
+
+    monkeypatch.setattr("fleetdesk.data.analytics.compute_kpis", broken)
+    response = configured_client.get("/dashboard")
+    assert response.status_code == 500
+    html = response.get_data(as_text=True)
+    assert "Algo deu errado nesta tela" in html
+    assert 'href="/fuel"' in html  # the sidebar is still there
+
+
+def test_kpis_explain_how_they_are_calculated(configured_client: FlaskClient) -> None:
+    html = configured_client.get("/dashboard").get_data(as_text=True)
+    assert html.count('class="info-tip"') == 8
+    assert "Produção líquida − comissões − combustível − pedágio" in html
 
 
 @pytest.mark.parametrize("url", PAGES)

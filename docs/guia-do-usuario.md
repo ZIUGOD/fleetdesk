@@ -28,9 +28,11 @@ Não é preciso instalar Python, nem ser administrador do computador.
 3. Se aparecer **"O Windows protegeu o computador"**, clique em **Mais informações** e depois em
    **Executar assim mesmo**. *O aviso aparece porque o instalador ainda não tem assinatura
    digital (está em andamento).*
-4. Clique em **Avançar** e **Instalar**.
+4. Siga o assistente: **Avançar** na boas-vindas, confira a pasta de instalação (a sugerida já
+   serve), escolha se quer o ícone na Área de Trabalho e clique em **Instalar**.
+5. Na última tela, deixe marcado **Executar FleetDesk** e clique em **Concluir**.
 
-O FleetDesk abre sozinho no navegador e ganha um ícone na **Área de Trabalho** e no **menu
+O FleetDesk abre no navegador e ganha um ícone na **Área de Trabalho** e no **menu
 Iniciar**. A partir daí, use sempre esse ícone.
 
 ### Se o Windows bloquear o instalador sem a opção "Executar assim mesmo"
@@ -65,6 +67,10 @@ Pronto: clique em **Dashboard**.
 
 - **O FleetDesk relê as planilhas sozinho** sempre que alguém as salva. Não precisa reiniciar.
   Use **Recarregar** no menu se quiser forçar uma nova leitura.
+- **O que é cada número:** passe o mouse (ou clique) no **ⓘ** ao lado do nome de cada indicador
+  para ver o que ele significa e como é calculado.
+- **Se as planilhas não puderem ser lidas** (pasta movida, Google Drive desconectado, arquivo
+  sendo salvo), as telas continuam abrindo, vazias, com um aviso no topo explicando o motivo.
 - **Filtros:** em quase todas as telas dá para filtrar por competência (o período de 26 a 25),
   motorista, cliente e material.
 - **Telas:**
@@ -97,11 +103,15 @@ Os achados são **pistas para conferir**, não certezas: alguns podem estar corr
 negociado diferente, por exemplo).
 
 **Resumo com IA (opcional e gratuito).** O botão **Gerar resumo** usa uma inteligência
-artificial que roda **no próprio computador**: nenhum dado vai para a internet. Para ativar:
+artificial que roda **no próprio computador**: nenhum dado vai para a internet. Se ela ainda
+não estiver pronta, a Auditoria (e **Configurações > Assistente de IA**) mostra o passo a passo
+do que falta. Em resumo:
 
-1. Instale o **Ollama** em <https://ollama.com> (gratuito).
-2. Abra o **Prompt de Comando** e digite: `ollama pull qwen2.5:3b` (baixa cerca de 2 GB).
-3. Volte à Auditoria e clique em **Gerar resumo**. Leva de 5 a 30 segundos.
+1. Instale o **Ollama**, pelo site oficial <https://ollama.com/download/windows> (gratuito e de
+   código aberto).
+2. Abra o **Prompt de Comando** e digite: `ollama pull qwen2.5:3b` (baixa cerca de 2 GB, uma vez só).
+3. Volte à Auditoria e clique em **Verificar de novo** e depois em **Gerar resumo**. Leva de 5 a
+   30 segundos.
 
 Computadores com pouca memória (menos de 8 GB) podem ficar lentos com a IA. Sem ela, a
 Auditoria funciona do mesmo jeito, só sem o resumo.

@@ -8,7 +8,13 @@ from flask import Flask
 from flask.testing import FlaskClient
 
 from fleetdesk.app import create_app
-from fleetdesk.assistant import AssistantError, AssistantStatus, LocalAssistant, Summary
+from fleetdesk.assistant import (
+    NOT_RUNNING,
+    AssistantError,
+    AssistantStatus,
+    LocalAssistant,
+    Summary,
+)
 from fleetdesk.data.audit import AuditReport
 from fleetdesk.data.repository import DataRepository
 from fleetdesk.dialogs import DialogBusyError, PickKind
@@ -59,12 +65,16 @@ class FakeAssistant(LocalAssistant):
     def __init__(self) -> None:
         super().__init__("http://127.0.0.1:9")
         self.available = True
+        #: What is missing when not available: NOT_INSTALLED, NOT_RUNNING or NO_MODEL.
+        self.state = NOT_RUNNING
         self.failure: str | None = None
         self.prompts: list[AuditReport] = []
 
     def status(self, preferred_model: str = "") -> AssistantStatus:
         if not self.available:
-            return AssistantStatus(available=False, message="O Ollama não está aberto.")
+            return AssistantStatus(
+                available=False, message="O Ollama não está aberto.", state=self.state
+            )
         models = ["qwen2.5:3b", "qwen2.5:7b"]
         return AssistantStatus(True, preferred_model or models[0], models)
 

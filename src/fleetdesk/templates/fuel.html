@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% from "_macros.html" import info %}
 {% block title %}Combustível{% endblock %}
 
 {% block content %}
@@ -19,19 +20,19 @@
 <div class="row g-3 mb-3">
   <div class="col-md-4">
     <div class="panel kpi compact">
-      <div class="kpi-label">Total gasto</div>
+      <div class="kpi-label">Total gasto{{ info('Gasto com combustível nos abastecimentos filtrados: a soma da coluna VALOR TOTAL (R$) da aba COMBUSTÍVEL.', 'Soma de VALOR TOTAL (R$)') }}</div>
       <div class="kpi-value num">{{ total_spent | brl }}</div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="panel kpi compact">
-      <div class="kpi-label">Litros abastecidos</div>
+      <div class="kpi-label">Litros abastecidos{{ info('Quantidade de combustível colocada nos caminhões: a soma da coluna LITROS da aba COMBUSTÍVEL.', 'Soma de LITROS') }}</div>
       <div class="kpi-value num">{{ total_liters | number(1) }} L</div>
     </div>
   </div>
   <div class="col-md-4">
     <div class="panel kpi compact">
-      <div class="kpi-label">Preço médio</div>
+      <div class="kpi-label">Preço médio{{ info('Quanto custou, em média, cada litro: o total gasto dividido pelos litros. Abastecimentos maiores pesam mais na média.', 'Total gasto ÷ litros abastecidos') }}</div>
       <div class="kpi-value num">{{ (total_spent / total_liters) | brl if total_liters else '—' }}<small class="unit">/L</small></div>
     </div>
   </div>

@@ -108,6 +108,19 @@
     </div>
   </div>
   {% endif %}
+  {% if data_problem and request.endpoint != 'pages.settings' %}
+  <div class="data-banner" role="status">
+    <i class="bi bi-file-earmark-x"></i>
+    <div class="min-w-0">
+      <strong>Sem dados para mostrar</strong>
+      <span>{{ data_problem }} As telas abrem normalmente, mas vazias.</span>
+    </div>
+    <div class="update-actions">
+      <a class="btn-accent" href="{{ url_for('pages.settings') }}"><i class="bi bi-gear"></i>Escolher planilhas</a>
+      <a class="btn-ghost" href="{{ url_for('pages.reload') }}"><i class="bi bi-arrow-clockwise"></i>Recarregar</a>
+    </div>
+  </div>
+  {% endif %}
   {% block content %}{% endblock %}
 </main>
 

@@ -137,7 +137,7 @@
       </form>
       <div class="panel-subtitle mt-2">Modelos menores (3b) respondem mais rápido; maiores (7b) escrevem melhor, mas precisam de um computador mais forte.</div>
       {% else %}
-      <div class="alert-error" style="margin-bottom:0"><i class="bi bi-plug"></i><span>{{ assistant.message }}</span></div>
+      {% include "_ai_setup.html" %}
       {% endif %}
     </div>
 

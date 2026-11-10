@@ -207,3 +207,8 @@ class Dataset:
     @property
     def duplicated_freights(self) -> int:
         return sum(f.duplicated_freights for f in self.files)
+
+
+def empty_dataset() -> Dataset:
+    """A dataset with no records, for showing the pages when nothing could be loaded."""
+    return Dataset([], [], [], [], [], [], [], [], [], [], [], datetime.now(), None)

@@ -2,3 +2,11 @@
 {% macro money_value(value, decimals=0) -%}
 <small>{{ '−' if value < 0 }}R$</small>{{ value | abs | number(decimals) }}
 {%- endmacro %}
+
+{#- "i" button for a KPI label: what the number means and how it is calculated. -#}
+{% macro info(text, formula='') -%}
+<span class="info-tip" tabindex="0" role="button" aria-label="O que é este valor?">
+  <i class="bi bi-info-circle"></i>
+  <span class="info-pop" role="tooltip">{{ text }}{% if formula %}<span class="formula">{{ formula }}</span>{% endif %}</span>
+</span>
+{%- endmacro %}

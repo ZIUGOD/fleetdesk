@@ -1,18 +1,18 @@
 {% extends "layout.html" %}
-{% from "_macros.html" import money_value %}
+{% from "_macros.html" import money_value, info %}
 {% block title %}Dashboard{% endblock %}
 
-{% macro money_tile(label, icon, value, note='', highlight=false) %}
+{% macro money_tile(label, icon, value, note='', highlight=false, help='', formula='') %}
 <div class="panel kpi {{ 'highlight' if highlight }}">
-  <div class="kpi-label"><span class="kpi-icon"><i class="bi {{ icon }}"></i></span>{{ label }}</div>
+  <div class="kpi-label"><span class="kpi-icon"><i class="bi {{ icon }}"></i></span>{{ label }}{{ info(help, formula) }}</div>
   <div class="kpi-value" title="{{ value | brl }}">{{ money_value(value) }}</div>
   <div class="kpi-note">{{ caller() if caller else note }}</div>
 </div>
 {% endmacro %}
 
-{% macro cost_tile(label, value, empty_note) %}
+{% macro cost_tile(label, value, empty_note, help, formula='') %}
 <div class="panel kpi compact">
-  <div class="kpi-label">{{ label }}</div>
+  <div class="kpi-label">{{ label }}{{ info(help, formula) }}</div>
   {% if value %}
   <div class="kpi-value" title="{{ value | brl }}">{{ money_value(value) }}</div>
   {% else %}
@@ -52,24 +52,36 @@
 
 {% if kpis.trips == 0 %}
 <div class="panel empty-state">
+  {% if data_problem %}
+  <i class="bi bi-file-earmark-spreadsheet"></i>
+  <strong>Nenhum frete carregado</strong>
+  Os indicadores e gráficos aparecem aqui assim que as planilhas forem lidas.
+  {% else %}
   <i class="bi bi-funnel"></i>
   <strong>Nenhum frete com esses filtros</strong>
   Tente outra combinação ou limpe os filtros.
+  {% endif %}
 </div>
 {% else %}
 
 <div class="row g-3 mb-3">
   <div class="col-12 col-sm-6 col-xl-3">
     {{ money_tile('Faturamento bruto', 'bi-cash-stack', kpis.gross_revenue,
-                  'Ticket médio ' ~ (kpis.average_ticket | brl) ~ ' por viagem') }}
+                  'Ticket médio ' ~ (kpis.average_ticket | brl) ~ ' por viagem',
+                  help='Tudo o que os clientes pagaram pelos fretes, antes de impostos e retenções. É a soma da coluna FATURAMENTO BRUTO (R$) da aba LANÇAMENTOS, com os filtros acima. O ticket médio é esse total dividido pelo número de viagens.',
+                  formula='Soma de FATURAMENTO BRUTO de cada viagem') }}
   </div>
   <div class="col-12 col-sm-6 col-xl-3">
-    {% call money_tile('Produção líquida', 'bi-graph-up-arrow', kpis.net_revenue) %}
+    {% call money_tile('Produção líquida', 'bi-graph-up-arrow', kpis.net_revenue,
+                       help='O que fica para a empresa depois das retenções e impostos de cada frete. É a soma da coluna PRODUÇÃO LÍQUIDA (R$). A etiqueta mostra quanto do faturamento bruto ficou retido.',
+                       formula='Faturamento bruto − retenções e impostos') %}
       <span class="tag neutral" title="Retenção: {{ kpis.withholding | brl }}">−{{ kpis.withholding_share | percent }} de retenção</span>
     {% endcall %}
   </div>
   <div class="col-12 col-sm-6 col-xl-3">
-    {% call money_tile('Resultado operacional', 'bi-bar-chart-line', kpis.operating_result, highlight=true) %}
+    {% call money_tile('Resultado operacional', 'bi-bar-chart-line', kpis.operating_result, highlight=true,
+                       help='Quanto sobra da produção líquida depois de pagar as comissões, o combustível e os pedágios. Não desconta a folha dos motoristas nem outras despesas da empresa. A margem é o resultado dividido pela produção líquida.',
+                       formula='Produção líquida − comissões − combustível − pedágio') %}
       {% if kpis.fuel == 0 and kpis.tolls == 0 %}
       <span class="tag warning" title="O resultado ainda não desconta combustível nem pedágio">
         <i class="bi bi-exclamation-triangle"></i> Sem combustível e pedágio
@@ -83,7 +95,7 @@
   </div>
   <div class="col-12 col-sm-6 col-xl-3">
     <div class="panel kpi">
-      <div class="kpi-label"><span class="kpi-icon"><i class="bi bi-box-seam"></i></span>Volume transportado</div>
+      <div class="kpi-label"><span class="kpi-icon"><i class="bi bi-box-seam"></i></span>Volume transportado{{ info('Peso total carregado nas viagens, em toneladas: a soma da coluna PESO (T). Abaixo, quanto cada tonelada rendeu de produção líquida.', 'Produção líquida ÷ toneladas = R$ por tonelada') }}</div>
       <div class="kpi-value">{{ kpis.tonnes | number }}<small class="unit">t</small></div>
       <div class="kpi-note">{{ kpis.net_per_tonne | brl }} líquido por tonelada</div>
     </div>
@@ -91,10 +103,18 @@
 </div>
 
 <div class="row g-3 mb-3">
-  <div class="col-6 col-xl-3">{{ cost_tile('Comissões', kpis.commission, 'Nenhuma comissão') }}</div>
-  <div class="col-6 col-xl-3">{{ cost_tile('Folha dos motoristas', kpis.payroll_total, 'Nenhum fechamento') }}</div>
-  <div class="col-6 col-xl-3">{{ cost_tile('Combustível', kpis.fuel, 'Nenhum abastecimento lançado') }}</div>
-  <div class="col-6 col-xl-3">{{ cost_tile('Pedágio', kpis.tolls, 'Nenhum pedágio lançado') }}</div>
+  <div class="col-6 col-xl-3">{{ cost_tile('Comissões', kpis.commission, 'Nenhuma comissão',
+    'Comissão dos motoristas sobre as viagens: a soma da coluna COMISSÃO (R$) da aba LANÇAMENTOS. Entra no cálculo do resultado operacional.',
+    'Soma de COMISSÃO (R$) de cada viagem') }}</div>
+  <div class="col-6 col-xl-3">{{ cost_tile('Folha dos motoristas', kpis.payroll_total, 'Nenhum fechamento',
+    'Total a pagar aos motoristas: a soma da coluna SALÁRIO TOTAL da aba FECHAMENTO (comissão mais acréscimos, menos descontos). Já inclui as comissões, por isso não é descontado de novo no resultado operacional.',
+    'Soma de SALÁRIO TOTAL do FECHAMENTO') }}</div>
+  <div class="col-6 col-xl-3">{{ cost_tile('Combustível', kpis.fuel, 'Nenhum abastecimento lançado',
+    'Gasto com abastecimentos: a soma da coluna VALOR TOTAL (R$) da aba COMBUSTÍVEL, na competência escolhida.',
+    'Soma de VALOR TOTAL dos abastecimentos') }}</div>
+  <div class="col-6 col-xl-3">{{ cost_tile('Pedágio', kpis.tolls, 'Nenhum pedágio lançado',
+    'Gasto com pedágios: a soma da coluna VALOR (R$) da aba PEDÁGIO, na competência escolhida. A fatura do Sem Parar ainda não é lida automaticamente.',
+    'Soma de VALOR dos pedágios') }}</div>
 </div>
 
 <div class="panel panel-body mb-3">

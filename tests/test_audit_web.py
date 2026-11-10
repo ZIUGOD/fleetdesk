@@ -5,7 +5,15 @@ from pathlib import Path
 import pytest
 from flask.testing import FlaskClient
 
-from fleetdesk.assistant import LocalAssistant, build_prompt, overview, where
+from fleetdesk.assistant import (
+    NO_MODEL,
+    NOT_INSTALLED,
+    NOT_RUNNING,
+    LocalAssistant,
+    build_prompt,
+    overview,
+    where,
+)
 from fleetdesk.data.audit import run_audit
 from fleetdesk.data.repository import DataRepository
 from fleetdesk.sample_data import build_workbook
@@ -75,6 +83,55 @@ def test_unreachable_ollama_is_reported_not_raised() -> None:
     status = LocalAssistant("http://127.0.0.1:9").status()
     assert not status.available
     assert "Ollama" in status.message
+
+
+@pytest.mark.parametrize(("installed", "state"), [(False, NOT_INSTALLED), (True, NOT_RUNNING)])
+def test_missing_ollama_tells_installed_from_closed(installed: bool, state: str) -> None:
+    status = LocalAssistant("http://127.0.0.1:9", is_installed=lambda: installed).status()
+    assert status.state == state
+
+
+@pytest.mark.parametrize(
+    ("state", "expected", "absent"),
+    [
+        (NOT_INSTALLED, ["ollama.com/download/windows", "ollama pull qwen2.5:3b"], []),
+        (NOT_RUNNING, ["digite <strong>Ollama</strong>"], ["ollama pull"]),
+        (NO_MODEL, ["ollama pull qwen2.5:3b"], ["OllamaSetup.exe"]),
+    ],
+)
+@pytest.mark.parametrize("url", ["/audit", "/settings"])
+def test_setup_guide_matches_what_is_missing(
+    faulty_client: FlaskClient,
+    assistant: FakeAssistant,
+    url: str,
+    state: str,
+    expected: list[str],
+    absent: list[str],
+) -> None:
+    assistant.available, assistant.state = False, state
+
+    html = faulty_client.get(url).get_data(as_text=True)
+
+    assert "É seguro." in html
+    assert "Verificar de novo" in html
+    for text in expected:
+        assert text in html
+    for text in absent:
+        assert text not in html
+
+
+def test_audit_page_survives_a_failing_audit(
+    faulty_client: FlaskClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def broken(*args: object) -> None:
+        raise ValueError("bug")
+
+    monkeypatch.setattr("fleetdesk.web.routes.run_audit", broken)
+
+    response = faulty_client.get("/audit")
+    assert response.status_code == 200
+    assert "Não foi possível conferir as planilhas agora" in response.get_data(as_text=True)
+    assert faulty_client.get("/dashboard").status_code == 200  # sidebar badge too
 
 
 def test_prompt_is_prioritised_and_preformatted(tmp_path: Path) -> None:

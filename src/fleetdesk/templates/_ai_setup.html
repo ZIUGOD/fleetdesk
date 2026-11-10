@@ -1,0 +1,52 @@
+{#- Step-by-step setup of the optional local AI (Ollama), for when it is not ready. Expects `assistant`. -#}
+{% set command = 'ollama pull ' ~ recommended_model %}
+<div class="ai-guide">
+  <div class="ai-guide-state"><i class="bi bi-plug"></i><span>{{ assistant.message }}</span></div>
+
+  <div class="ai-safe">
+    <i class="bi bi-shield-check"></i>
+    <span><strong>É seguro.</strong> O Ollama é um programa gratuito e de código aberto. A IA roda
+      inteira neste computador: as planilhas não são enviadas para a internet. Ele não altera o
+      FleetDesk nem as planilhas e pode ser desinstalado quando quiser, em Configurações do Windows &gt; Aplicativos.</span>
+  </div>
+
+  <ol>
+    {% if assistant.state == 'not_installed' %}
+    <li>Abra o site oficial <a href="https://ollama.com/download/windows" target="_blank" rel="noopener">ollama.com/download/windows</a>
+      e clique em <strong>Download for Windows</strong>.
+      <div class="text-subtle">Baixe só do site oficial, nunca de outros sites.</div></li>
+    <li>Abra o arquivo baixado (<code>OllamaSetup.exe</code>) e clique em <strong>Install</strong>. Não precisa criar conta.
+      <div class="text-subtle">Quando terminar, o Ollama fica aberto perto do relógio do Windows.</div></li>
+    {% elif assistant.state == 'not_running' %}
+    <li>Abra o menu Iniciar, digite <strong>Ollama</strong> e clique no aplicativo.
+      <div class="text-subtle">Ele não abre uma janela: fica perto do relógio do Windows.</div></li>
+    {% endif %}
+    {% if assistant.state in ('not_installed', 'no_model') %}
+    <li>Baixe o modelo de IA (uma vez só, cerca de 2 GB): abra o menu Iniciar, digite <strong>cmd</strong>,
+      abra o <strong>Prompt de Comando</strong>, cole o comando abaixo e aperte Enter.
+      <div class="ai-command">
+        <code>{{ command }}</code>
+        <button type="button" class="btn-ghost btn-sm" data-copy="{{ command }}"><i class="bi bi-clipboard"></i><span>Copiar</span></button>
+      </div>
+      <div class="text-subtle">Espere aparecer <code>success</code>. Pode levar alguns minutos.</div></li>
+    {% endif %}
+    <li>Volte aqui e clique em <strong>Verificar de novo</strong>.</li>
+  </ol>
+
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <a class="btn-accent" href="{{ request.full_path if request.query_string else request.path }}"><i class="bi bi-arrow-clockwise"></i>Verificar de novo</a>
+    <span class="text-subtle" style="font-size:.78rem">Recomendado: 8 GB de memória ou mais. Sem a IA, o resto do FleetDesk funciona igual.</span>
+  </div>
+</div>
+<script>
+document.querySelectorAll('[data-copy]').forEach(button => button.addEventListener('click', async () => {
+  const label = button.querySelector('span');
+  try {
+    await navigator.clipboard.writeText(button.dataset.copy);
+    label.textContent = 'Copiado';
+  } catch (_) {
+    label.textContent = 'Selecione e copie';
+  }
+  setTimeout(() => { label.textContent = 'Copiar'; }, 2500);
+}));
+</script>

@@ -24,10 +24,15 @@ AppPublisherURL=https://ziugod.github.io/fleetdesk/
 AppSupportURL=https://github.com/ZIUGOD/fleetdesk/blob/main/docs/guia-do-usuario.md
 AppUpdatesURL=https://ziugod.github.io/fleetdesk/
 VersionInfoVersion={#AppVersion}
-DefaultDirName={localappdata}\Programs\{#AppName}
-DisableDirPage=yes
+; {autopf} is %LOCALAPPDATA%\Programs for a per-user install: same folder as before.
+DefaultDirName={autopf}\{#AppName}
+; A full wizard: welcome, folder, shortcuts, summary, progress and a finish page that
+; offers to open FleetDesk. Upgrades skip the folder page and reuse the installed folder.
+DisableWelcomePage=no
+DisableDirPage=auto
 DisableProgramGroupPage=yes
-DisableReadyPage=yes
+DisableReadyPage=no
+DisableFinishedPage=no
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -46,6 +51,9 @@ RestartApplications=no
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
+
+[Messages]
+WelcomeLabel2=Isto vai instalar o [name/ver] neste computador.%n%nO FleetDesk lê as planilhas de fretes da empresa e mostra faturamento, fechamento da folha e uma auditoria que aponta possíveis erros. As planilhas não são alteradas e nenhum dado sai deste computador.%n%nNão é preciso ser administrador.
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"

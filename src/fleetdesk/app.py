@@ -12,10 +12,11 @@ import webbrowser
 from logging.handlers import RotatingFileHandler
 from typing import Any
 
-from flask import Flask, Response, g, request, url_for
+from flask import Flask, Response, g, render_template, request, url_for
+from werkzeug.exceptions import HTTPException
 
 from fleetdesk import __version__, formatting
-from fleetdesk.assistant import LocalAssistant
+from fleetdesk.assistant import RECOMMENDED_MODEL, LocalAssistant
 from fleetdesk.data.repository import DataRepository
 from fleetdesk.dialogs import pick_path
 from fleetdesk.settings import SettingsStore, default_settings_path
@@ -55,7 +56,24 @@ def create_app(
     app.context_processor(_layout_context)
     app.add_template_global(url_with)
     app.after_request(_never_cache_pages)
+    app.register_error_handler(Exception, _page_error)
     return app
+
+
+def _page_error(error: Exception) -> HTTPException | tuple[str, int]:
+    """An unexpected failure still shows the menu and a way out, never a bare error page."""
+    if isinstance(error, HTTPException):
+        return error
+    log.exception("Page %s failed", request.path)
+    try:
+        return render_template("error.html"), 500
+    except Exception:
+        log.exception("The error page itself failed")
+        return (
+            "O FleetDesk encontrou um erro inesperado. Volte e tente de novo; se continuar, "
+            "envie o arquivo %APPDATA%\\FleetDesk\\fleetdesk.log para o suporte.",
+            500,
+        )
 
 
 def _exit_soon() -> None:
@@ -101,11 +119,25 @@ def _layout_context() -> dict[str, Any]:
         "source_name": os.path.basename(source.rstrip("\\/")) or source,
         "source_is_folder": os.path.isdir(source) if source else False,
         "dataset": dataset,
-        "audit_alerts": audit_for(dataset).attention_count if dataset else 0,
+        "data_problem": g.get("data_problem"),
+        "audit_alerts": _audit_alerts(),
         "update": services().updates.cached() if settings.check_updates else None,
         "can_self_update": services().updates.can_self_update,
         "download_page": DOWNLOAD_PAGE,
+        "recommended_model": RECOMMENDED_MODEL,
     }
+
+
+def _audit_alerts() -> int:
+    """Sidebar badge; a failing audit must not take the whole page down with it."""
+    dataset = g.get("dataset")
+    if dataset is None:
+        return 0
+    try:
+        return audit_for(dataset).attention_count
+    except Exception:
+        log.exception("Audit failed")
+        return 0
 
 
 def url_with(**params: Any) -> str:

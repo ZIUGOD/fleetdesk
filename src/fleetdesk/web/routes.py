@@ -24,7 +24,7 @@ from fleetdesk import __version__
 from fleetdesk.assistant import AssistantError
 from fleetdesk.data import analytics
 from fleetdesk.data.audit import AuditReport, run_audit
-from fleetdesk.data.models import Dataset, Freight
+from fleetdesk.data.models import Dataset, Freight, empty_dataset
 from fleetdesk.data.repository import WORKBOOK_EXTENSIONS, list_workbooks
 from fleetdesk.dialogs import DialogBusyError, PickKind
 from fleetdesk.settings import THEMES
@@ -40,21 +40,36 @@ AUDIT_ISSUE_LIMIT = 200
 
 
 def load_dataset() -> Dataset | None:
-    """The current dataset, or None when no usable source is configured."""
+    """The current dataset, or None when no usable source is configured.
+
+    When there is none, ``g.data_problem`` says why in pt-BR, for the banner every page shows.
+    """
     source = services().settings.load().source
-    if not source or not os.path.exists(source):
+    if not source:
+        g.data_problem = "Nenhuma planilha escolhida ainda."
+        return None
+    if not os.path.exists(source):
+        g.data_problem = (
+            f"A planilha ou pasta escolhida não foi encontrada: {source}. Ela pode ter sido "
+            "movida, renomeada, ou o Google Drive pode estar desconectado."
+        )
         return None
     try:
         dataset = services().repository.load(source)
-    except OSError:
+    except Exception:  # any failure must still leave every page usable
         log.exception("Could not load data source %s", source)
+        g.data_problem = (
+            "Não foi possível ler as planilhas. Se alguém estiver salvando ou o Google Drive "
+            "estiver sincronizando, espere um pouco e clique em Recarregar."
+        )
         return None
     g.dataset = dataset
     return dataset
 
 
-def _to_settings() -> Response:
-    return redirect(url_for("pages.settings"))
+def dataset_or_empty() -> Dataset:
+    """The current dataset, or an empty one so a page still opens (with the banner)."""
+    return load_dataset() or empty_dataset()
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,14 +102,14 @@ def _filter_options(dataset: Dataset) -> dict[str, list[str]]:
 
 @bp.get("/")
 def index() -> Response:
-    return redirect(url_for("pages.dashboard"))
+    # First run: straight to choosing the workbooks.
+    first_run = not services().settings.load().source
+    return redirect(url_for("pages.settings" if first_run else "pages.dashboard"))
 
 
 @bp.get("/dashboard")
 def dashboard() -> str | Response:
-    dataset = load_dataset()
-    if dataset is None:
-        return _to_settings()
+    dataset = dataset_or_empty()
 
     filters = FreightFilters.from_request()
     freights = filters.apply(dataset.freights)
@@ -126,9 +141,7 @@ def dashboard() -> str | Response:
 
 @bp.get("/freights")
 def freights() -> str | Response:
-    dataset = load_dataset()
-    if dataset is None:
-        return _to_settings()
+    dataset = dataset_or_empty()
 
     filters = FreightFilters.from_request()
     rows = filters.apply(dataset.freights)
@@ -154,9 +167,7 @@ def freights() -> str | Response:
 
 @bp.get("/payroll")
 def payroll() -> str | Response:
-    dataset = load_dataset()
-    if dataset is None:
-        return _to_settings()
+    dataset = dataset_or_empty()
 
     period = request.args.get("period", "")
     driver = request.args.get("driver", "")
@@ -189,9 +200,7 @@ def payroll() -> str | Response:
 
 @bp.get("/payroll/adjustments")
 def adjustments() -> str | Response:
-    dataset = load_dataset()
-    if dataset is None:
-        return _to_settings()
+    dataset = dataset_or_empty()
 
     period = request.args.get("period", "")
     driver = request.args.get("driver", "")
@@ -226,9 +235,7 @@ def adjustments() -> str | Response:
 
 @bp.get("/fuel")
 def fuel() -> str | Response:
-    dataset = load_dataset()
-    if dataset is None:
-        return _to_settings()
+    dataset = dataset_or_empty()
 
     period = request.args.get("period", "")
     driver = request.args.get("driver", "")
@@ -335,13 +342,18 @@ def audit_for(dataset: Dataset, period: str = "") -> AuditReport:
 
 @bp.get("/audit")
 def audit() -> str | Response:
-    dataset = load_dataset()
-    if dataset is None:
-        return _to_settings()
+    dataset = dataset_or_empty()
     period = request.args.get("period", "")
+    try:
+        report = audit_for(dataset, period)
+        audit_failed = False
+    except Exception:
+        log.exception("Audit failed")
+        report, audit_failed = AuditReport(period, [], 0), True
     return render_template(
         "audit.html",
-        report=audit_for(dataset, period),
+        report=report,
+        audit_failed=audit_failed,
         periods=dataset.periods,
         selected_period=period,
         assistant=services().assistant.status(services().settings.load().ai_model),

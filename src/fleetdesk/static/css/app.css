@@ -194,6 +194,29 @@ a { color: inherit; }
 .kpi.highlight .kpi-icon { background: var(--accent-bg); color: var(--accent); }
 .kpi.inset { background: var(--surface-2); padding: .6rem .9rem; }
 
+/* "i" next to a KPI label: what the number is and how it is calculated. Opens on hover,
+   on keyboard focus and on click/tap (focus), so it also works on a touch screen. */
+.info-tip {
+  position: relative; margin-left: auto; display: inline-grid; place-items: center;
+  width: 22px; height: 22px; border-radius: 50%; color: var(--muted); cursor: help;
+  font-size: .85rem; flex: none;
+}
+.info-tip:hover, .info-tip:focus-visible { color: var(--accent); background: var(--surface-2); outline: none; }
+.info-pop {
+  display: none; position: absolute; z-index: 30; top: calc(100% + 6px); right: -6px;
+  width: min(300px, 80vw); padding: .65rem .8rem; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--border-strong);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+  color: var(--text); font-size: .78rem; font-weight: 400; line-height: 1.45; text-align: left;
+  white-space: normal; cursor: auto;
+}
+.info-pop strong { display: block; margin-bottom: .2rem; font-weight: 600; }
+.info-pop .formula {
+  display: block; margin-top: .4rem; padding: .3rem .45rem; border-radius: 6px;
+  background: var(--surface-2); color: var(--text-2); font-size: .74rem;
+}
+.info-tip:hover .info-pop, .info-tip:focus .info-pop, .info-tip:focus-within .info-pop { display: block; }
+
 .tag {
   display: inline-flex; align-items: center; gap: .2rem;
   font-size: .72rem; font-weight: 600; padding: .1rem .45rem; border-radius: 999px;
@@ -280,6 +303,33 @@ a { color: inherit; }
 .update-banner > div:first-of-type { flex: 1 1 260px; }
 .update-status { display: block; font-size: .8rem; color: var(--text-2); }
 .update-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+.data-banner {
+  display: flex; align-items: center; gap: .9rem; flex-wrap: wrap;
+  padding: .75rem 1rem; margin-bottom: 1.25rem; border-radius: 12px;
+  background: var(--warning-bg); border: 1px solid var(--warning);
+}
+.data-banner > i { font-size: 1.4rem; color: var(--warning); }
+.data-banner > div:first-of-type { flex: 1 1 260px; }
+.data-banner span { display: block; font-size: .8rem; color: var(--text-2); }
+
+/* ── Local AI setup guide ────────────────────────────────────────────────── */
+.ai-guide { border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; background: var(--surface-2); }
+.ai-guide-state { display: flex; gap: .5rem; align-items: flex-start; font-size: .84rem; margin-bottom: .75rem; }
+.ai-guide-state i { color: var(--text-2); margin-top: .1rem; }
+.ai-guide ol { margin: 0 0 .75rem; padding-left: 1.2rem; font-size: .84rem; }
+.ai-guide li { margin-bottom: .45rem; }
+.ai-guide li .text-subtle { font-size: .78rem; }
+.ai-command { display: inline-flex; align-items: center; gap: .4rem; margin-top: .25rem; }
+.ai-command code {
+  font-family: var(--font-mono); font-size: .8rem; padding: .2rem .5rem; border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+}
+.ai-safe {
+  display: flex; gap: .5rem; align-items: flex-start; font-size: .8rem; color: var(--text-2);
+  padding: .6rem .75rem; border-radius: 8px; background: var(--positive-bg); margin-bottom: .75rem;
+}
+.ai-safe i { color: var(--positive); margin-top: .1rem; }
 
 /* ── Audit ───────────────────────────────────────────────────────────────── */
 .finding-why { font-size: .84rem; color: var(--text-2); margin: 0 0 .6rem; max-width: 80ch; }

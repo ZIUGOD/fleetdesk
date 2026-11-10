@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% from "_macros.html" import money_value %}
+{% from "_macros.html" import money_value, info %}
 {% block title %}Fechamento{% endblock %}
 
 {% block content %}
@@ -18,28 +18,28 @@
 <div class="row g-3 mb-3">
   <div class="col-6 col-lg-3">
     <div class="panel kpi compact">
-      <div class="kpi-label">Viagens</div>
+      <div class="kpi-label">Viagens{{ info('Número de viagens e toneladas de cada motorista, como estão nas colunas VIAGENS e TONELADAS da aba FECHAMENTO, somadas para os motoristas filtrados.', 'Soma de VIAGENS e de TONELADAS do FECHAMENTO') }}</div>
       <div class="kpi-value">{{ totals.trips | number }}</div>
       <div class="kpi-note">{{ totals.tonnes | number(1) }} t transportadas</div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
     <div class="panel kpi compact">
-      <div class="kpi-label">Produção líquida</div>
+      <div class="kpi-label">Produção líquida{{ info('O que os motoristas produziram para a empresa depois de retenções e impostos: a soma da coluna PRODUÇÃO LÍQUIDA da aba FECHAMENTO. Abaixo, o faturamento bruto antes dos descontos.', 'Soma de PRODUÇÃO LÍQUIDA do FECHAMENTO') }}</div>
       <div class="kpi-value" title="{{ totals.net_revenue | brl }}">{{ money_value(totals.net_revenue) }}</div>
       <div class="kpi-note">Bruto: {{ totals.gross_revenue | brl(0) }}</div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
     <div class="panel kpi compact">
-      <div class="kpi-label">Comissões</div>
+      <div class="kpi-label">Comissões{{ info('Comissão dos motoristas sobre a produção: a soma da coluna COMISSÃO do FECHAMENTO. Abaixo, o saldo dos ajustes (descontos como INSS e adiantamentos, e acréscimos como salário e gratificação), da coluna TOTAL AJUSTES.', 'Soma de COMISSÃO · Ajustes = soma de TOTAL AJUSTES') }}</div>
       <div class="kpi-value" title="{{ totals.commission | brl }}">{{ money_value(totals.commission) }}</div>
       <div class="kpi-note">Ajustes: {{ totals.total_adjustments | brl(0) }}</div>
     </div>
   </div>
   <div class="col-6 col-lg-3">
     <div class="panel kpi compact highlight">
-      <div class="kpi-label">Total a pagar</div>
+      <div class="kpi-label">Total a pagar{{ info('Quanto a empresa paga aos motoristas filtrados: a soma da coluna SALÁRIO TOTAL do FECHAMENTO, que é a comissão somada aos ajustes.', 'Comissões + ajustes (soma de SALÁRIO TOTAL)') }}</div>
       <div class="kpi-value" title="{{ totals.total_pay | brl }}">{{ money_value(totals.total_pay, 2) }}</div>
       <div class="kpi-note">{{ rows | length }} motorista{{ 's' if rows | length != 1 }}</div>
     </div>
